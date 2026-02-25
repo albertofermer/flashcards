@@ -1071,16 +1071,28 @@
                     </button>
                 </div>
                 
-                <div class="hidden gap-3 mt-6" id="spacedRepButtons">
-                    <button onclick="markCardDifficulty(1)" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition">
-                        😰 Difícil
-                    </button>
-                    <button onclick="markCardDifficulty(2)" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-6 rounded-lg transition">
-                        😐 Normal
-                    </button>
-                    <button onclick="markCardDifficulty(3)" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition">
-                        😊 Fácil
-                    </button>
+                <div class="hidden gap-3 mt-6 flex-col" id="spacedRepButtons">
+                    <div class="text-sm text-slate-400 text-center">Marcar dificultad:</div>
+                    <div class="flex gap-3">
+                        <button onclick="cycleDifficultyOnly(1)" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
+                            😰 Difícil
+                        </button>
+                        <button onclick="cycleDifficultyOnly(2)" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
+                            😐 Normal
+                        </button>
+                        <button onclick="cycleDifficultyOnly(3)" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
+                            😊 Fácil
+                        </button>
+                    </div>
+                    <div class="text-sm text-slate-400 text-center mt-2">Resultado:</div>
+                    <div class="flex gap-3">
+                        <button onclick="markCardIncorrect()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition">
+                            ✗ Fallida
+                        </button>
+                        <button onclick="markCardCorrect()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition">
+                            ✓ Correcta
+                        </button>
+                    </div>
                 </div>
             `;
             
@@ -1783,6 +1795,30 @@
                 studyBtn.classList.add('opacity-50', 'cursor-not-allowed');
                 studyBtn.disabled = true;
             }
+        }
+
+        function cycleDifficultyOnly(level) {
+            const activeCards = getActiveCards();
+            const displayCards = state.filterTopic === 'all' ? activeCards : getCardsByTopic(state.filterTopic);
+            const card = displayCards[state.currentIndex];
+            
+            // Guardar nivel de dificultad (1=difícil, 2=normal, 3=fácil)
+            state.cardDifficulty[card.id] = level;
+            state.cardLastReview[card.id] = Date.now();
+            
+            // NO marcar como correcta aquí - esperar a que presione ✓ o ✗
+            
+            saveToLocalStorage();
+            
+            // Mensajes según dificultad
+            const messages = {
+                1: '😰 Dificultad asignada: Difícil',
+                2: '😐 Dificultad asignada: Normal',
+                3: '😊 Dificultad asignada: Fácil'
+            };
+            
+            showNotification(messages[level]);
+            updateCardDisplay();
         }
 
         function markCardDifficulty(level) {
