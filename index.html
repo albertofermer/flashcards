@@ -503,6 +503,15 @@
                     </select>
                 </div>
 
+                <div class="mb-4">
+                    <input 
+                        type="text"
+                        id="listSearchInput"
+                        placeholder="🔍 Buscar pregunta o respuesta..."
+                        class="input-field w-full px-4 py-2 rounded-lg text-slate-100 placeholder-slate-500"
+                    />
+                </div>
+
                 <div id="listContent" class="space-y-3 max-h-96 overflow-y-auto">
                     <!-- Se llena con JavaScript -->
                 </div>
@@ -515,26 +524,90 @@
 
         <!-- Stats Modal -->
         <div id="statsModal" class="modal">
-            <div class="modal-content">
+            <div class="modal-content max-w-2xl max-h-90vh overflow-y-auto">
                 <span class="modal-close" onclick="closeStatsModal()">&times;</span>
-                <h2 class="text-2xl font-bold text-slate-100 mb-6">📊 Estadísticas</h2>
+                <h2 class="text-2xl font-bold text-slate-100 mb-6">📊 Estadísticas Detalladas</h2>
                 
-                <div class="space-y-4">
-                    <div class="glass-effect rounded-lg p-4">
-                        <p class="text-slate-400 text-sm">Total de Tarjetas</p>
-                        <p class="text-3xl font-bold text-amber-400" id="statTotalCards">0</p>
+                <!-- Resumen General -->
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold text-slate-200 mb-4">📈 Resumen General</h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div class="glass-effect rounded-lg p-4 text-center">
+                            <p class="text-slate-400 text-xs mb-2">Total</p>
+                            <p class="text-2xl font-bold text-amber-400" id="statTotalCards">0</p>
+                        </div>
+                        <div class="glass-effect rounded-lg p-4 text-center">
+                            <p class="text-slate-400 text-xs mb-2">✓ Correctas</p>
+                            <p class="text-2xl font-bold text-green-400" id="statCorrectCards">0</p>
+                        </div>
+                        <div class="glass-effect rounded-lg p-4 text-center">
+                            <p class="text-slate-400 text-xs mb-2">⏳ Pendientes</p>
+                            <p class="text-2xl font-bold text-slate-300" id="statPendingCards">0</p>
+                        </div>
+                        <div class="glass-effect rounded-lg p-4 text-center">
+                            <p class="text-slate-400 text-xs mb-2">📂 Temas</p>
+                            <p class="text-2xl font-bold text-blue-400" id="statTopics">0</p>
+                        </div>
                     </div>
+                </div>
+
+                <!-- Progreso General -->
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold text-slate-200 mb-4">🎯 Progreso</h3>
                     <div class="glass-effect rounded-lg p-4">
-                        <p class="text-slate-400 text-sm">Respondidas Correctamente</p>
-                        <p class="text-3xl font-bold text-green-400" id="statCorrectCards">0</p>
+                        <div class="flex justify-between mb-2">
+                            <p class="text-slate-400">Tasa de Acierto</p>
+                            <p class="text-amber-400 font-bold" id="statAccuracyPercent">0%</p>
+                        </div>
+                        <div class="w-full bg-slate-700 rounded-full h-3 overflow-hidden">
+                            <div id="statAccuracyBar" class="bg-gradient-to-r from-amber-400 to-amber-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
                     </div>
-                    <div class="glass-effect rounded-lg p-4">
-                        <p class="text-slate-400 text-sm">Pendientes</p>
-                        <p class="text-3xl font-bold text-slate-300" id="statPendingCards">0</p>
+                </div>
+
+                <!-- Estadísticas SR -->
+                <div id="srStatsContainer" class="mb-8" style="display: none;">
+                    <h3 class="text-lg font-semibold text-slate-200 mb-4">🧠 Spaced Repetition</h3>
+                    <div class="space-y-2">
+                        <div class="glass-effect rounded-lg p-4 flex justify-between">
+                            <span class="text-slate-400">Difíciles (😰)</span>
+                            <span class="font-bold text-red-400" id="statDifficultCards">0</span>
+                        </div>
+                        <div class="glass-effect rounded-lg p-4 flex justify-between">
+                            <span class="text-slate-400">Normales (😐)</span>
+                            <span class="font-bold text-yellow-400" id="statNormalCards">0</span>
+                        </div>
+                        <div class="glass-effect rounded-lg p-4 flex justify-between">
+                            <span class="text-slate-400">Fáciles (😊)</span>
+                            <span class="font-bold text-green-400" id="statEasyCards">0</span>
+                        </div>
                     </div>
-                    <div class="glass-effect rounded-lg p-4">
-                        <p class="text-slate-400 text-sm">Temas Únicos</p>
-                        <p class="text-3xl font-bold text-amber-400" id="statTopics">0</p>
+                </div>
+
+                <!-- Estadísticas por Tema -->
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold text-slate-200 mb-4">📂 Desglose por Tema</h3>
+                    <div id="statsByTopic" class="space-y-2">
+                        <!-- Se llena con JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Estadísticas de Sesiones de Estudio -->
+                <div id="studySessionsContainer" class="mb-8" style="display: none;">
+                    <h3 class="text-lg font-semibold text-slate-200 mb-4">🎯 Sesiones de Estudio</h3>
+                    <div class="space-y-2">
+                        <div class="glass-effect rounded-lg p-4 flex justify-between">
+                            <span class="text-slate-400">Total de Sesiones</span>
+                            <span class="font-bold text-blue-400" id="statSessionCount">0</span>
+                        </div>
+                        <div class="glass-effect rounded-lg p-4 flex justify-between">
+                            <span class="text-slate-400">Preguntas Estudiadas</span>
+                            <span class="font-bold text-amber-400" id="statSessionQuestions">0</span>
+                        </div>
+                        <div class="glass-effect rounded-lg p-4 flex justify-between">
+                            <span class="text-slate-400">Promedio de Acierto</span>
+                            <span class="font-bold text-green-400" id="statSessionAvgAccuracy">0%</span>
+                        </div>
                     </div>
                 </div>
 
@@ -1138,11 +1211,21 @@
 
         function updateListContent() {
             const selectedTopic = document.getElementById('modalTopicFilter')?.value || 'all';
-            const cards = selectedTopic === 'all' ? state.cards : state.cards.filter(c => (c.topic || 'Sin tema') === selectedTopic);
+            let cards = selectedTopic === 'all' ? state.cards : state.cards.filter(c => (c.topic || 'Sin tema') === selectedTopic);
+            
+            // Aplicar filtro de búsqueda
+            const searchInput = document.getElementById('listSearchInput')?.value.toLowerCase() || '';
+            if (searchInput) {
+                cards = cards.filter(c => 
+                    c.question.toLowerCase().includes(searchInput) || 
+                    c.answer.toLowerCase().includes(searchInput)
+                );
+            }
+            
             const listContent = document.getElementById('listContent');
 
             if (cards.length === 0) {
-                listContent.innerHTML = '<p class="text-slate-400 text-center py-8">No hay tarjetas en esta categoría</p>';
+                listContent.innerHTML = '<p class="text-slate-400 text-center py-8">No hay tarjetas que coincidan</p>';
                 return;
             }
 
@@ -1366,11 +1449,81 @@
             const correct = Object.values(state.answeredCards).filter(v => v === 'correct').length;
             const pending = getActiveCards().length;
             const topics = getUniqueTopics().length;
+            const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
 
+            // Resumen General
             document.getElementById('statTotalCards').textContent = total;
             document.getElementById('statCorrectCards').textContent = correct;
             document.getElementById('statPendingCards').textContent = pending;
             document.getElementById('statTopics').textContent = topics;
+
+            // Progreso
+            document.getElementById('statAccuracyPercent').textContent = accuracy + '%';
+            document.getElementById('statAccuracyBar').style.width = accuracy + '%';
+
+            // Estadísticas SR
+            if (state.spacedRepetitionEnabled) {
+                const difficult = Object.values(state.cardDifficulty).filter(d => d === 1).length;
+                const normal = Object.values(state.cardDifficulty).filter(d => d === 2).length;
+                const easy = Object.values(state.cardDifficulty).filter(d => d === 3).length;
+                
+                document.getElementById('srStatsContainer').style.display = 'block';
+                document.getElementById('statDifficultCards').textContent = difficult;
+                document.getElementById('statNormalCards').textContent = normal;
+                document.getElementById('statEasyCards').textContent = easy;
+            } else {
+                document.getElementById('srStatsContainer').style.display = 'none';
+            }
+
+            // Estadísticas por Tema
+            const uniqueTopics = getUniqueTopics();
+            const topicStats = uniqueTopics.map(topic => {
+                const cardsInTopic = state.cards.filter(c => (c.topic || 'Sin tema') === topic);
+                const correctInTopic = cardsInTopic.filter(c => state.answeredCards[c.id] === 'correct').length;
+                const accuracyTopic = cardsInTopic.length > 0 ? Math.round((correctInTopic / cardsInTopic.length) * 100) : 0;
+                
+                return {
+                    topic,
+                    total: cardsInTopic.length,
+                    correct: correctInTopic,
+                    accuracy: accuracyTopic
+                };
+            });
+
+            const topicContainer = document.getElementById('statsByTopic');
+            topicContainer.innerHTML = topicStats.map(stat => `
+                <div class="glass-effect rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-slate-300 font-semibold">${stat.topic}</span>
+                        <span class="text-xs text-slate-500">${stat.correct}/${stat.total}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="flex-1 bg-slate-700 rounded-full h-2 overflow-hidden">
+                            <div class="bg-gradient-to-r from-blue-400 to-blue-500 h-full rounded-full transition-all duration-300" style="width: ${stat.accuracy}%"></div>
+                        </div>
+                        <span class="text-sm font-bold text-blue-400 min-w-12 text-right">${stat.accuracy}%</span>
+                    </div>
+                </div>
+            `).join('');
+
+            // Estadísticas de Sesiones de Estudio
+            if (state.studySessions && state.studySessions.length > 0) {
+                const totalSessions = state.studySessions.length;
+                const totalQuestionsStudied = state.studySessions.reduce((sum, s) => sum + (s.correct + s.incorrect), 0);
+                const avgAccuracy = state.studySessions.length > 0 
+                    ? Math.round(state.studySessions.reduce((sum, s) => {
+                        const sessionTotal = s.correct + s.incorrect;
+                        return sum + (sessionTotal > 0 ? (s.correct / sessionTotal) * 100 : 0);
+                    }, 0) / state.studySessions.length)
+                    : 0;
+
+                document.getElementById('studySessionsContainer').style.display = 'block';
+                document.getElementById('statSessionCount').textContent = totalSessions;
+                document.getElementById('statSessionQuestions').textContent = totalQuestionsStudied;
+                document.getElementById('statSessionAvgAccuracy').textContent = avgAccuracy + '%';
+            } else {
+                document.getElementById('studySessionsContainer').style.display = 'none';
+            }
         }
 
         // ==================== EDIT CARD ====================
@@ -1876,6 +2029,11 @@
 
         // Modal topic filter
         document.getElementById('modalTopicFilter')?.addEventListener('change', () => {
+            updateListContent();
+        });
+
+        // Search in list modal
+        document.getElementById('listSearchInput')?.addEventListener('input', () => {
             updateListContent();
         });
 
