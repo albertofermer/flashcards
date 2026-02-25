@@ -1119,13 +1119,22 @@
             const card = displayCards[state.currentIndex];
             const isFlipped = state.isFlipped;
 
+            // Obtener emoji de dificultad actual
+            const difficultyEmoji = {
+                1: '😰',
+                2: '😐',
+                3: '😊'
+            };
+            const currentDifficulty = state.cardDifficulty[card.id] || null;
+            const difficultyDisplay = currentDifficulty ? ` ${difficultyEmoji[currentDifficulty]}` : '';
+
             cardContainer.innerHTML = `
                 <div class="card-flip" onclick="toggleFlip()">
                     <div class="card-flip-inner gradient-border rounded-2xl ${isFlipped ? 'flipped' : ''}">
                         <div class="card-flip-front bg-gradient-to-br from-slate-700 to-slate-800 border-4 border-amber-400/20">
                             <div class="text-center">
                                 <p class="text-xs font-semibold text-emerald-300 mb-2 uppercase tracking-wider">${card.topic || 'Sin tema'}</p>
-                                <p class="text-sm font-semibold text-amber-300 mb-4 uppercase tracking-wider">Pregunta</p>
+                                <p class="text-sm font-semibold text-amber-300 mb-4 uppercase tracking-wider">Pregunta${difficultyDisplay}</p>
                                 <p class="text-2xl sm:text-3xl font-bold leading-relaxed">${escapeHtml(card.question)}</p>
                                 <p class="text-xs text-slate-400 mt-6">Haz clic para ver la respuesta</p>
                                 <p class="text-xs text-slate-400 mt-2">${state.currentIndex + 1} de ${displayCards.length}</p>
@@ -1223,7 +1232,11 @@
             const displayCards = state.filterTopic === 'all' ? activeCards : getCardsByTopic(state.filterTopic);
             const card = displayCards[state.currentIndex];
             
-            state.answeredCards[card.id] = 'incorrect';
+            // En modo SR, NO marcar como incorrect definitivamente - la tarjeta debe seguir disponible
+            // Solo marcar como incorrect en modo normal
+            if (!state.spacedRepetitionEnabled) {
+                state.answeredCards[card.id] = 'incorrect';
+            }
             
             // En modo SR, guardar la dificultad seleccionada si existe
             if (state.spacedRepetitionEnabled && state.selectedDifficulty) {
