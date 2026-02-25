@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="description" content="FlashCards - Aplicación minimalista para estudiar con tarjetas de aprendizaje">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FlashCards">
+    
+    <title>FlashCards - Estudia Inteligentemente</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif']
+                    },
+                    colors: {
+                        'slate-bg': '#0f172a',
+                        'slate-card': '#1e293b',
+                        'slate-border': '#334155',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%230f172a' width='180' height='180'/><rect fill='%23fbbf24' x='30' y='30' width='120' height='120' rx='20'/></svg>">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230f172a' width='100' height='100'/><rect fill='%23fbbf24' x='15' y='15' width='70' height='70' rx='10'/></svg>">
+    
+    <style>
+        * {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            background-color: #0f172a;
+            color: #f1f5f9;
+            font-family: 'Inter', system-ui, sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* Light Theme */
+        body.light-theme {
+            background-color: #f1f5f9;
+            color: #0f172a;
+        }
+
+        body.light-theme .glass-effect {
+            background: rgba(255, 255, 255, 0.9);
+            border-color: rgba(15, 23, 42, 0.1);
+        }
+
+        body.light-theme .input-field {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-color: rgba(15, 23, 42, 0.2);
+            color: #0f172a;
+        }
+
+        body.light-theme .gradient-border {
+            background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+        }
+
+        body.light-theme .text-slate-400 {
+            color: #64748b !important;
+        }
+
+        body.light-theme .text-slate-100 {
+            color: #0f172a !important;
+        }
+
+        body.light-theme .bg-slate-700 {
+            background-color: #e2e8f0 !important;
+            color: #0f172a !important;
+        }
+
+        body.light-theme .bg-slate-700:hover {
+            background-color: #cbd5e1 !important;
+        }
+
+        .card-flip {
+            cursor: pointer;
+            min-height: 320px;
+            display: block;
+        }
+
+        .card-flip-inner {
+            position: relative;
+            width: 100%;
+            height: auto;
+            min-height: 320px;
+        }
+
+        .card-flip-front, .card-flip-back {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            text-align: center;
+            min-height: 320px;
+            transition: opacity 0.3s ease;
+            opacity: 1;
+        }
+
+        .card-flip-back {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .card-flip-inner.flipped .card-flip-front {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .card-flip-inner.flipped .card-flip-back {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .gradient-border {
+            position: relative;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        .glass-effect {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        .button-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .button-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(251, 191, 36, 0.15);
+        }
+
+        .button-danger:hover {
+            box-shadow: 0 20px 25px -5px rgba(239, 68, 68, 0.15);
+        }
+
+        .input-field {
+            background-color: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .input-field:focus {
+            background-color: rgba(30, 41, 59, 0.9);
+            border-color: rgba(251, 191, 36, 0.5);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.1);
+        }
+
+        .pulse-soft {
+            animation: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse-soft {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.8;
+            }
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(251, 191, 36, 0.05));
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #fcd34d;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            display: block;
+        }
+
+        .modal-content {
+            background: #1e293b;
+            margin: 2rem;
+            border-radius: 1rem;
+            padding: 2rem;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .modal-close {
+            float: right;
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            color: #94a3b8;
+        }
+
+        .modal-close:hover {
+            color: #f1f5f9;
+        }
+
+        @media (max-width: 640px) {
+            .card-flip {
+                min-height: 280px;
+            }
+
+            .card-flip-inner {
+                min-height: 280px;
+            }
+
+            .card-flip-front, .card-flip-back {
+                padding: 1.5rem;
+                font-size: 1.125rem;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-bg">
+    <div class="min-h-screen w-full flex flex-col">
+        <!-- Header -->
+        <header class="glass-effect sticky top-0 z-50 border-b border-slate-border">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                <div class="flex items-center justify-between gap-4 flex-wrap">
+                    <div>
+                        <h1 class="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-amber-300 to-amber-200 bg-clip-text text-transparent">
+                            📚 FlashCards
+                        </h1>
+                        <p class="text-slate-400 text-sm mt-1">Estudia inteligentemente</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="themeToggle" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-4 rounded-lg text-sm transition" title="Cambiar tema">
+                            🌙
+                        </button>
+                        <button id="statsBtn" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-4 rounded-lg text-sm transition">
+                            📊 Stats
+                        </button>
+                        <button id="viewListBtn" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-4 rounded-lg text-sm transition">
+                            📋 Listado
+                        </button>
+                        <button id="exportBtn" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-4 rounded-lg text-sm transition">
+                            💾 Exportar
+                        </button>
+                        <div class="badge">
+                            <span id="cardCount">0</span>
+                            <span>restantes</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Card Display Section -->
+            <div id="cardSection" class="mb-12">
+                <div class="mb-6">
+                    <h2 class="text-xl font-semibold text-slate-200 mb-4">Tu Tarjeta</h2>
+                    
+                    <div id="cardContainer" class="card-flip">
+                        <div class="card-flip-inner gradient-border rounded-2xl overflow-hidden">
+                            <div class="card-flip-front bg-gradient-to-br from-slate-700 to-slate-800 border-4 border-amber-400/20">
+                                <div class="text-center">
+                                    <p class="text-sm font-semibold text-amber-300 mb-4 uppercase tracking-wider">Pregunta</p>
+                                    <p class="text-2xl sm:text-3xl font-bold leading-relaxed">
+                                        Haz clic para comenzar
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="card-flip-back bg-gradient-to-br from-amber-900/20 to-slate-800 border-4 border-amber-400/20">
+                                <div class="text-center">
+                                    <p class="text-sm font-semibold text-amber-300 mb-4 uppercase tracking-wider">Respuesta</p>
+                                    <p class="text-2xl sm:text-3xl font-bold leading-relaxed">
+                                        Selecciona una tarjeta
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-col gap-4 mb-6">
+                    <!-- Search Bar -->
+                    <div>
+                        <input 
+                            type="text"
+                            id="searchInput"
+                            placeholder="🔍 Buscar preguntas..."
+                            class="input-field w-full px-4 py-3 rounded-lg text-slate-100 placeholder-slate-500"
+                        />
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <button id="prevBtn" class="button-hover flex-1 bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-3 px-6 rounded-lg transition">
+                            ← Anterior
+                        </button>
+                        <button id="randomBtn" class="button-hover flex-1 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-900 font-bold py-3 px-6 rounded-lg transition">
+                            🎲 Siguiente
+                        </button>
+                        <button id="nextBtn" class="button-hover flex-1 bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-3 px-6 rounded-lg transition">
+                            Siguiente →
+                        </button>
+                    </div>
+
+                    <!-- Filter and Sort Controls -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">Tema</label>
+                            <select id="topicFilter" class="input-field w-full px-3 py-2 rounded-lg text-slate-100 text-sm">
+                                <option value="all">Todos los temas</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">Orden</label>
+                            <select id="sortMode" class="input-field w-full px-3 py-2 rounded-lg text-slate-100 text-sm">
+                                <option value="random">Aleatorio</option>
+                                <option value="ordered">Ordenado</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Reset Theme Button -->
+                    <button id="resetThemeBtn" class="button-hover w-full bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-4 rounded-lg transition text-sm">
+                        🔄 Resetear Tema
+                    </button>
+                </div>
+
+                <!-- Progress Bar -->
+                <div id="progressBar" class="w-full bg-slate-700 rounded-full h-2 overflow-hidden" style="display: none;">
+                    <div id="progressFill" class="bg-gradient-to-r from-amber-400 to-amber-500 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Divider -->
+            <div class="h-px bg-gradient-to-r from-transparent via-slate-600 to-transparent mb-12"></div>
+
+            <!-- Add Card Form -->
+            <div class="mb-12">
+                <h2 class="text-xl font-semibold text-slate-200 mb-4">Añadir Nueva Tarjeta</h2>
+                
+                <form id="addCardForm" accept-charset="UTF-8" class="glass-effect rounded-2xl p-6 sm:p-8 space-y-4">
+                    <div>
+                        <label for="topic" class="block text-sm font-medium text-slate-300 mb-2">Tema (Opcional)</label>
+                        <input 
+                            type="text"
+                            id="topic" 
+                            placeholder="Ej: Matemáticas, Historia, Idiomas..." 
+                            class="input-field w-full px-4 py-3 rounded-lg text-slate-100 placeholder-slate-500"
+                            spellcheck="false"
+                        />
+                    </div>
+
+                    <div>
+                        <label for="question" class="block text-sm font-medium text-slate-300 mb-2">Pregunta</label>
+                        <textarea 
+                            id="question" 
+                            placeholder="¿Cuál es la capital de Francia?" 
+                            class="input-field w-full px-4 py-3 rounded-lg resize-y min-h-20 max-h-40 text-slate-100 placeholder-slate-500"
+                            spellcheck="false"
+                            required
+                        ></textarea>
+                    </div>
+
+                    <div>
+                        <label for="answer" class="block text-sm font-medium text-slate-300 mb-2">Respuesta</label>
+                        <textarea 
+                            id="answer" 
+                            placeholder="París es la capital de Francia..." 
+                            class="input-field w-full px-4 py-3 rounded-lg resize-y min-h-20 max-h-40 text-slate-100 placeholder-slate-500"
+                            spellcheck="false"
+                            required
+                        ></textarea>
+                    </div>
+
+                    <button 
+                        type="submit" 
+                        class="button-hover w-full bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-slate-900 font-bold py-3 px-6 rounded-lg transition"
+                    >
+                        ✨ Añadir Tarjeta
+                    </button>
+                </form>
+            </div>
+
+            <!-- Import CSV Section -->
+            <div class="mb-12">
+                <h2 class="text-xl font-semibold text-slate-200 mb-4">📥 Importar desde Excel/CSV</h2>
+                <p class="text-slate-400 text-sm mb-4">Formato requerido: Tema ; Pregunta ; Respuesta (separadas por punto y coma)</p>
+                <div class="glass-effect rounded-2xl p-6 sm:p-8">
+                    <input 
+                        type="file" 
+                        id="csvImport" 
+                        accept=".csv,.txt" 
+                        class="w-full px-4 py-3 rounded-lg bg-slate-700 text-slate-100 cursor-pointer"
+                    />
+                    <p class="text-xs text-slate-400 mt-3">Ejemplo de formato:</p>
+                    <pre class="text-xs text-slate-300 mt-2 bg-slate-800/50 p-3 rounded overflow-x-auto">Matemáticas;¿Cuánto es 2+2?;4
+Historia;¿En qué año fue 1492?;Descubrimiento de América</pre>
+                </div>
+            </div>
+
+            <!-- Danger Zone -->
+            <div class="glass-effect rounded-2xl p-6 sm:p-8 border-red-500/20">
+                <h3 class="text-lg font-semibold text-red-400 mb-4">⚠️ Zona Peligrosa</h3>
+                <p class="text-slate-400 text-sm mb-4">Esta acción borrará todos tus datos y no se puede deshacer.</p>
+                <button 
+                    id="deleteBtn" 
+                    class="button-danger w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition"
+                >
+                    🗑️ Borrar Todo
+                </button>
+            </div>
+        </main>
+
+        <!-- List Modal -->
+        <div id="listModal" class="modal">
+            <div class="modal-content">
+                <span class="modal-close" onclick="closeListModal()">&times;</span>
+                <h2 class="text-2xl font-bold text-slate-100 mb-6">📋 Listado de Tarjetas</h2>
+                
+                <div class="mb-4">
+                    <select id="modalTopicFilter" class="input-field w-full px-4 py-2 rounded-lg text-slate-100">
+                        <option value="all">Todos los temas</option>
+                    </select>
+                </div>
+
+                <div id="listContent" class="space-y-3 max-h-96 overflow-y-auto">
+                    <!-- Se llena con JavaScript -->
+                </div>
+
+                <button onclick="closeListModal()" class="mt-6 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-6 rounded-lg w-full">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Modal -->
+        <div id="statsModal" class="modal">
+            <div class="modal-content">
+                <span class="modal-close" onclick="closeStatsModal()">&times;</span>
+                <h2 class="text-2xl font-bold text-slate-100 mb-6">📊 Estadísticas</h2>
+                
+                <div class="space-y-4">
+                    <div class="glass-effect rounded-lg p-4">
+                        <p class="text-slate-400 text-sm">Total de Tarjetas</p>
+                        <p class="text-3xl font-bold text-amber-400" id="statTotalCards">0</p>
+                    </div>
+                    <div class="glass-effect rounded-lg p-4">
+                        <p class="text-slate-400 text-sm">Respondidas Correctamente</p>
+                        <p class="text-3xl font-bold text-green-400" id="statCorrectCards">0</p>
+                    </div>
+                    <div class="glass-effect rounded-lg p-4">
+                        <p class="text-slate-400 text-sm">Pendientes</p>
+                        <p class="text-3xl font-bold text-slate-300" id="statPendingCards">0</p>
+                    </div>
+                    <div class="glass-effect rounded-lg p-4">
+                        <p class="text-slate-400 text-sm">Temas Únicos</p>
+                        <p class="text-3xl font-bold text-amber-400" id="statTopics">0</p>
+                    </div>
+                </div>
+
+                <button onclick="closeStatsModal()" class="mt-6 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-6 rounded-lg w-full">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+
+        <!-- Edit Card Modal -->
+        <div id="editModal" class="modal">
+            <div class="modal-content">
+                <span class="modal-close" onclick="closeEditModal()">&times;</span>
+                <h2 class="text-2xl font-bold text-slate-100 mb-6">✏️ Editar Tarjeta</h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Tema</label>
+                        <input type="text" id="editTopic" class="input-field w-full px-4 py-3 rounded-lg text-slate-100">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Pregunta</label>
+                        <textarea id="editQuestion" class="input-field w-full px-4 py-3 rounded-lg resize-y min-h-20 max-h-40 text-slate-100"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Respuesta</label>
+                        <textarea id="editAnswer" class="input-field w-full px-4 py-3 rounded-lg resize-y min-h-20 max-h-60 text-slate-100"></textarea>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex gap-3">
+                    <button onclick="closeEditModal()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-6 rounded-lg">
+                        Cancelar
+                    </button>
+                    <button onclick="saveEditedCard()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-6 rounded-lg">
+                        Guardar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="border-t border-slate-border glass-effect mt-12">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-slate-400 text-sm">
+                <p>Hecho con ❤️ para estudiantes. v1.0</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // ==================== APP STATE ====================
+        const state = {
+            cards: [],
+            currentIndex: 0,
+            isFlipped: false,
+            currentView: 'study', // study, list, import
+            filterTopic: 'all',
+            sortMode: 'random', // random, ordered
+            answeredCards: {}, // {cardId: 'correct'|'incorrect'}
+            newDayReset: false, // Bandera para notificar reset automático
+            searchQuery: '', // Búsqueda actual
+            editingCardId: null, // ID de la tarjeta que se está editando
+            theme: localStorage.getItem('theme') || 'dark' // dark o light
+        };
+
+        // ==================== DOM ELEMENTS ====================
+        const cardContainer = document.getElementById('cardContainer');
+        const cardCountDisplay = document.getElementById('cardCount');
+        const addCardForm = document.getElementById('addCardForm');
+        const questionInput = document.getElementById('question');
+        const answerInput = document.getElementById('answer');
+        const randomBtn = document.getElementById('randomBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        const deleteBtn = document.getElementById('deleteBtn');
+        const cardSection = document.getElementById('cardSection');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+
+        // ==================== STORAGE MANAGEMENT ====================
+        function saveToLocalStorage() {
+            const today = new Date().toISOString().split('T')[0]; // Formato: YYYY-MM-DD
+            const dataToSave = {
+                cards: state.cards,
+                answeredCards: state.answeredCards,
+                lastDate: today
+            };
+            localStorage.setItem('flashcards', JSON.stringify(dataToSave));
+        }
+
+        function loadFromLocalStorage() {
+            const stored = localStorage.getItem('flashcards');
+            if (stored) {
+                const data = JSON.parse(stored);
+                state.cards = data.cards || [];
+                state.answeredCards = data.answeredCards || {};
+                
+                // Verificar si es un nuevo día
+                const today = new Date().toISOString().split('T')[0];
+                const lastDate = data.lastDate || today;
+                
+                if (today !== lastDate) {
+                    // Es un nuevo día, resetear todas las preguntas
+                    state.answeredCards = {};
+                    state.newDayReset = true; // Bandera para mostrar notificación después
+                    saveToLocalStorage();
+                }
+            }
+        }
+
+        // ==================== UTILITY FUNCTIONS ====================
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        function getUniqueTopics() {
+            const topics = new Set(state.cards.map(card => card.topic || 'Sin tema'));
+            return Array.from(topics).sort();
+        }
+
+        function getActiveCards() {
+            // Retorna las tarjetas que no han sido respondidas correctamente
+            return state.cards.filter(card => state.answeredCards[card.id] !== 'correct');
+        }
+
+        function getCardsByTopic(topic, cards = null) {
+            const baseCards = cards || getActiveCards();
+            if (topic === 'all') return baseCards;
+            return baseCards.filter(card => (card.topic || 'Sin tema') === topic);
+        }
+
+        // ==================== CARD DISPLAY ====================
+        function updateCardDisplay() {
+            let activeCards = getActiveCards();
+            
+            // Aplicar filtro de búsqueda
+            if (state.searchQuery) {
+                activeCards = activeCards.filter(card => 
+                    card.question.toLowerCase().includes(state.searchQuery) ||
+                    card.answer.toLowerCase().includes(state.searchQuery) ||
+                    (card.topic && card.topic.toLowerCase().includes(state.searchQuery))
+                );
+            }
+            
+            const displayCards = state.filterTopic === 'all' ? activeCards : getCardsByTopic(state.filterTopic, activeCards);
+
+            if (displayCards.length === 0) {
+                cardContainer.innerHTML = `
+                    <div class="card-flip-inner gradient-border rounded-2xl overflow-hidden">
+                        <div class="card-flip-front bg-gradient-to-br from-slate-700 to-slate-800 border-4 border-amber-400/20">
+                            <div class="text-center">
+                                <p class="text-sm font-semibold text-amber-300 mb-4 uppercase tracking-wider">¡Excelente!</p>
+                                <p class="text-xl sm:text-2xl font-bold leading-relaxed">Has respondido todas las preguntas correctamente 🎉</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                progressBar.style.display = 'none';
+                nextBtn.disabled = true;
+                prevBtn.disabled = true;
+                randomBtn.disabled = true;
+                return;
+            }
+
+            progressBar.style.display = 'block';
+            nextBtn.disabled = false;
+            prevBtn.disabled = false;
+            randomBtn.disabled = false;
+
+            const card = displayCards[state.currentIndex];
+            const isFlipped = state.isFlipped;
+
+            cardContainer.innerHTML = `
+                <div class="card-flip" onclick="toggleFlip()">
+                    <div class="card-flip-inner gradient-border rounded-2xl overflow-hidden ${isFlipped ? 'flipped' : ''}">
+                        <div class="card-flip-front bg-gradient-to-br from-slate-700 to-slate-800 border-4 border-amber-400/20">
+                            <div class="text-center">
+                                <p class="text-xs font-semibold text-emerald-300 mb-2 uppercase tracking-wider">${card.topic || 'Sin tema'}</p>
+                                <p class="text-sm font-semibold text-amber-300 mb-4 uppercase tracking-wider">Pregunta</p>
+                                <p class="text-2xl sm:text-3xl font-bold leading-relaxed">${escapeHtml(card.question)}</p>
+                                <p class="text-xs text-slate-400 mt-6">Haz clic para ver la respuesta</p>
+                                <p class="text-xs text-slate-400 mt-2">${state.currentIndex + 1} de ${displayCards.length}</p>
+                            </div>
+                        </div>
+                        <div class="card-flip-back bg-gradient-to-br from-amber-900/20 to-slate-800 border-4 border-amber-400/20">
+                            <div class="text-center">
+                                <p class="text-sm font-semibold text-amber-300 mb-4 uppercase tracking-wider">Respuesta</p>
+                                <p class="text-2xl sm:text-3xl font-bold leading-relaxed">${escapeHtml(card.answer)}</p>
+                                <p class="text-xs text-slate-400 mt-6">Haz clic para ver la pregunta</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 mt-6">
+                    <button onclick="markCardIncorrect()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition">
+                        ✗ Fallida
+                    </button>
+                    <button onclick="markCardCorrect()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition">
+                        ✓ Correcta
+                    </button>
+                </div>
+            `;
+
+            // Update progress bar
+            const progress = ((state.currentIndex + 1) / displayCards.length) * 100;
+            progressFill.style.width = progress + '%';
+        }
+
+        function updateCardCount() {
+            const activeCards = getActiveCards();
+            cardCountDisplay.textContent = activeCards.length;
+        }
+
+        function toggleFlip() {
+            state.isFlipped = !state.isFlipped;
+            updateCardDisplay();
+        }
+
+        // ==================== CARD EVALUATION ====================
+        function markCardCorrect() {
+            const activeCards = getActiveCards();
+            const displayCards = state.filterTopic === 'all' ? activeCards : getCardsByTopic(state.filterTopic);
+            const card = displayCards[state.currentIndex];
+            
+            state.answeredCards[card.id] = 'correct';
+            saveToLocalStorage();
+            updateCardCount();
+            
+            // Verificar si quedan tarjetas
+            const remainingCards = state.filterTopic === 'all' ? getActiveCards() : getCardsByTopic(state.filterTopic);
+            
+            if (remainingCards.length === 0) {
+                // No hay más tarjetas en este tema/filtro
+                state.currentIndex = 0;
+                state.isFlipped = false;
+                if (state.filterTopic === 'all' && getActiveCards().length === 0) {
+                    showNotification('🎉 ¡Excelente! ¡Todas las preguntas respondidas correctamente!');
+                } else {
+                    showNotification('✅ ¡Felicidades! Has terminado este tema');
+                }
+                updateCardDisplay();
+            } else {
+                nextCard();
+            }
+        }
+
+        function markCardIncorrect() {
+            const activeCards = getActiveCards();
+            const displayCards = state.filterTopic === 'all' ? activeCards : getCardsByTopic(state.filterTopic);
+            const card = displayCards[state.currentIndex];
+            
+            state.answeredCards[card.id] = 'incorrect';
+            saveToLocalStorage();
+            showNotification('📝 Pregunta marcada para repetir');
+            
+            // Verificar si quedan tarjetas después de marcar como incorrecta
+            const remainingCards = state.filterTopic === 'all' ? getActiveCards() : getCardsByTopic(state.filterTopic);
+            
+            if (remainingCards.length === 0) {
+                // No hay más tarjetas en este tema/filtro
+                state.currentIndex = 0;
+                state.isFlipped = false;
+                updateCardDisplay();
+            } else {
+                nextCard();
+            }
+        }
+
+        function resetTheme(topic) {
+            if (topic === 'all') {
+                // Resetear todos los temas
+                state.answeredCards = {};
+                state.currentIndex = 0;
+                state.isFlipped = false;
+                saveToLocalStorage();
+                updateCardCount();
+                updateCardDisplay();
+                showNotification('🔄 Todas las preguntas han sido reseteadas');
+            } else {
+                // Resetear un tema específico
+                state.cards.forEach(card => {
+                    if ((card.topic || 'Sin tema') === topic) {
+                        delete state.answeredCards[card.id];
+                    }
+                });
+                state.currentIndex = 0;
+                state.isFlipped = false;
+                saveToLocalStorage();
+                updateCardCount();
+                updateCardDisplay();
+                showNotification(`🔄 Tema "${topic}" reseteado - vuelve a aparecer en el repaso`);
+            }
+        }
+
+        // ==================== LIST MODAL ====================
+        function openListModal() {
+            const modal = document.getElementById('listModal');
+            modal.classList.add('active');
+            updateListContent();
+            updateModalTopicFilter();
+        }
+
+        function closeListModal() {
+            const modal = document.getElementById('listModal');
+            modal.classList.remove('active');
+        }
+
+        function updateListContent() {
+            const selectedTopic = document.getElementById('modalTopicFilter')?.value || 'all';
+            const cards = selectedTopic === 'all' ? state.cards : state.cards.filter(c => (c.topic || 'Sin tema') === selectedTopic);
+            const listContent = document.getElementById('listContent');
+
+            if (cards.length === 0) {
+                listContent.innerHTML = '<p class="text-slate-400 text-center py-8">No hay tarjetas en esta categoría</p>';
+                return;
+            }
+
+            listContent.innerHTML = cards.map((card, idx) => `
+                <div class="glass-effect rounded-lg p-4 border border-slate-600">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex-1">
+                            <p class="text-xs font-semibold text-emerald-300 mb-2">${card.topic || 'Sin tema'}</p>
+                            <p class="font-semibold text-slate-100 mb-2">P: ${escapeHtml(card.question)}</p>
+                            <p class="text-sm text-slate-400">R: ${escapeHtml(card.answer)}</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="openEditModal('${card.id}')" class="text-blue-400 hover:text-blue-300 text-lg" title="Editar tarjeta">✏️</button>
+                            ${state.answeredCards[card.id] === 'correct' ? '<span class="text-green-400 text-lg">✓</span>' : '<span class="text-slate-500">○</span>'}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateModalTopicFilter() {
+            const topics = getUniqueTopics();
+            const select = document.getElementById('modalTopicFilter');
+            if (!select) return;
+
+            const currentValue = select.value;
+            select.innerHTML = '<option value="all">Todos los temas</option>' + 
+                topics.map(topic => `<option value="${topic}">${topic}</option>`).join('');
+            select.value = currentValue;
+        }
+
+        // ==================== CARD NAVIGATION ====================
+        function nextCard() {
+            const activeCards = getActiveCards();
+            const displayCards = state.filterTopic === 'all' ? activeCards : getCardsByTopic(state.filterTopic);
+            
+            if (displayCards.length === 0) return;
+            
+            if (state.sortMode === 'random') {
+                state.currentIndex = Math.floor(Math.random() * displayCards.length);
+            } else {
+                state.currentIndex = (state.currentIndex + 1) % displayCards.length;
+            }
+            state.isFlipped = false;
+            updateCardDisplay();
+        }
+
+        function prevCard() {
+            const activeCards = getActiveCards();
+            const displayCards = state.filterTopic === 'all' ? activeCards : getCardsByTopic(state.filterTopic);
+            
+            if (displayCards.length === 0) return;
+            state.currentIndex = (state.currentIndex - 1 + displayCards.length) % displayCards.length;
+            state.isFlipped = false;
+            updateCardDisplay();
+        }
+
+        // ==================== CARD MANAGEMENT ====================
+        function addCard(question, answer, topic = 'Sin tema') {
+            // Validar que no estén vacíos pero permitir espacios interiores
+            if (!question || !answer) {
+                alert('Por favor, completa ambos campos');
+                return;
+            }
+
+            const cardId = 'card_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            
+            state.cards.push({
+                id: cardId,
+                question: question,
+                answer: answer,
+                topic: (topic && topic.trim()) || 'Sin tema'
+            });
+
+            saveToLocalStorage();
+            updateTopicFilters();
+            updateCardDisplay();
+            updateCardCount();
+            addCardForm.reset();
+
+            state.currentIndex = getActiveCards().length - 1;
+            updateCardDisplay();
+            showNotification('✨ Tarjeta añadida correctamente');
+        }
+
+        function deleteAllCards() {
+            if (state.cards.length === 0) {
+                alert('No hay tarjetas para borrar');
+                return;
+            }
+
+            if (confirm('⚠️ ¿Estás seguro de que quieres borrar TODAS las tarjetas? Esta acción no se puede deshacer.')) {
+                state.cards = [];
+                state.answeredCards = {};
+                state.currentIndex = 0;
+                state.isFlipped = false;
+                saveToLocalStorage();
+                updateTopicFilters();
+                updateCardDisplay();
+                updateCardCount();
+                showNotification('🗑️ Todas las tarjetas han sido borradas');
+            }
+        }
+
+        // ==================== IMPORT CSV ====================
+        function handleCSVImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target.result;
+                const lines = text.split('\n').filter(line => line.trim());
+                let importedCount = 0;
+
+                for (let i = 0; i < lines.length; i++) {
+                    const parts = lines[i].split(';').map(p => p.trim());
+                    if (parts.length >= 3) {
+                        const [topic, question, answer] = parts;
+                        if (topic && question && answer) {
+                            addCard(question, answer, topic);
+                            importedCount++;
+                        }
+                    }
+                }
+
+                showNotification(`📥 Se importaron ${importedCount} tarjetas correctamente`);
+            };
+            reader.readAsText(file);
+        }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'fixed bottom-6 right-6 bg-emerald-500 text-white px-6 py-3 rounded-lg shadow-lg animate-fadeIn';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateY(10px)';
+                setTimeout(() => notification.remove(), 300);
+            }, 2500);
+        }
+
+        // ==================== THEME TOGGLE ====================
+        function toggleTheme() {
+            state.theme = state.theme === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('theme', state.theme);
+            applyTheme();
+        }
+
+        function applyTheme() {
+            const themeBtn = document.getElementById('themeToggle');
+            if (state.theme === 'light') {
+                document.body.classList.add('light-theme');
+                if (themeBtn) themeBtn.textContent = '☀️';
+            } else {
+                document.body.classList.remove('light-theme');
+                if (themeBtn) themeBtn.textContent = '🌙';
+            }
+        }
+
+        // ==================== STATISTICS ====================
+        function openStatsModal() {
+            const modal = document.getElementById('statsModal');
+            modal.classList.add('active');
+            updateStats();
+        }
+
+        function closeStatsModal() {
+            const modal = document.getElementById('statsModal');
+            modal.classList.remove('active');
+        }
+
+        function updateStats() {
+            const total = state.cards.length;
+            const correct = Object.values(state.answeredCards).filter(v => v === 'correct').length;
+            const pending = getActiveCards().length;
+            const topics = getUniqueTopics().length;
+
+            document.getElementById('statTotalCards').textContent = total;
+            document.getElementById('statCorrectCards').textContent = correct;
+            document.getElementById('statPendingCards').textContent = pending;
+            document.getElementById('statTopics').textContent = topics;
+        }
+
+        // ==================== EDIT CARD ====================
+        function openEditModal(cardId) {
+            const card = state.cards.find(c => c.id === cardId);
+            if (!card) return;
+
+            state.editingCardId = cardId;
+            document.getElementById('editTopic').value = card.topic || '';
+            document.getElementById('editQuestion').value = card.question || '';
+            document.getElementById('editAnswer').value = card.answer || '';
+
+            const modal = document.getElementById('editModal');
+            modal.classList.add('active');
+        }
+
+        function closeEditModal() {
+            const modal = document.getElementById('editModal');
+            modal.classList.remove('active');
+            state.editingCardId = null;
+        }
+
+        function saveEditedCard() {
+            if (!state.editingCardId) return;
+
+            const card = state.cards.find(c => c.id === state.editingCardId);
+            if (!card) return;
+
+            const newTopic = document.getElementById('editTopic').value.trim() || 'Sin tema';
+            const newQuestion = document.getElementById('editQuestion').value;
+            const newAnswer = document.getElementById('editAnswer').value;
+
+            if (!newQuestion || !newAnswer) {
+                alert('La pregunta y respuesta no pueden estar vacías');
+                return;
+            }
+
+            card.topic = newTopic;
+            card.question = newQuestion;
+            card.answer = newAnswer;
+
+            saveToLocalStorage();
+            updateTopicFilters();
+            updateCardDisplay();
+            updateListContent();
+            closeEditModal();
+            showNotification('✏️ Tarjeta actualizada correctamente');
+        }
+
+        // ==================== SEARCH ====================
+        function handleSearch(query) {
+            state.searchQuery = query.toLowerCase();
+            updateCardDisplay();
+        }
+
+        function getFilteredCards() {
+            let cards = state.cards;
+
+            // Aplicar filtro de búsqueda
+            if (state.searchQuery) {
+                cards = cards.filter(card => 
+                    card.question.toLowerCase().includes(state.searchQuery) ||
+                    card.answer.toLowerCase().includes(state.searchQuery) ||
+                    (card.topic && card.topic.toLowerCase().includes(state.searchQuery))
+                );
+            }
+
+            return cards;
+        }
+
+        // ==================== EXPORT CSV ====================
+        function exportToCSV() {
+            if (state.cards.length === 0) {
+                alert('No hay tarjetas para exportar');
+                return;
+            }
+
+            // Crear contenido CSV
+            const csvContent = 'Tema;Pregunta;Respuesta\n' + 
+                state.cards.map(card => {
+                    const topic = (card.topic || 'Sin tema').replace(/;/g, ',');
+                    const question = card.question.replace(/;/g, ',').replace(/\n/g, ' ');
+                    const answer = card.answer.replace(/;/g, ',').replace(/\n/g, ' ');
+                    return `${topic};${question};${answer}`;
+                }).join('\n');
+
+            // Crear blob y descargar
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `flashcards_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+            URL.revokeObjectURL(url);
+
+            showNotification('💾 Tarjetas exportadas correctamente');
+        }
+
+        // ==================== EVENT LISTENERS ====================
+        document.getElementById('addCardForm')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const topic = document.getElementById('topic')?.value || 'Sin tema';
+            addCard(questionInput.value, answerInput.value, topic);
+        });
+
+        nextBtn.addEventListener('click', nextCard);
+        prevBtn.addEventListener('click', prevCard);
+        randomBtn.addEventListener('click', nextCard);
+        deleteBtn.addEventListener('click', deleteAllCards);
+
+        // View list button
+        document.getElementById('viewListBtn')?.addEventListener('click', openListModal);
+
+        // Theme toggle
+        document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
+
+        // Statistics
+        document.getElementById('statsBtn')?.addEventListener('click', openStatsModal);
+        document.getElementById('closeStatsModal')?.addEventListener('click', closeStatsModal);
+        document.getElementById('statsModal')?.addEventListener('click', (e) => {
+            if (e.target === document.getElementById('statsModal')) {
+                closeStatsModal();
+            }
+        });
+
+        // Edit card
+        document.getElementById('saveEditBtn')?.addEventListener('click', saveEditedCard);
+        document.getElementById('cancelEditBtn')?.addEventListener('click', closeEditModal);
+        document.getElementById('editModal')?.addEventListener('click', (e) => {
+            if (e.target === document.getElementById('editModal')) {
+                closeEditModal();
+            }
+        });
+
+        // Export CSV
+        document.getElementById('exportBtn')?.addEventListener('click', exportToCSV);
+
+        // Search
+        document.getElementById('searchInput')?.addEventListener('input', (e) => {
+            handleSearch(e.target.value);
+        });
+
+        // Close modal when clicking outside
+        document.getElementById('listModal')?.addEventListener('click', (e) => {
+            if (e.target === document.getElementById('listModal')) {
+                closeListModal();
+            }
+        });
+
+        // Topic filter
+        document.getElementById('topicFilter')?.addEventListener('change', (e) => {
+            state.filterTopic = e.target.value;
+            state.currentIndex = 0;
+            state.isFlipped = false;
+            updateCardDisplay();
+        });
+
+        // Sort mode
+        document.getElementById('sortMode')?.addEventListener('change', (e) => {
+            state.sortMode = e.target.value;
+            state.currentIndex = 0;
+            state.isFlipped = false;
+            updateCardDisplay();
+        });
+
+        // Modal topic filter
+        document.getElementById('modalTopicFilter')?.addEventListener('change', () => {
+            updateListContent();
+        });
+
+        // Reset Theme Button
+        document.getElementById('resetThemeBtn')?.addEventListener('click', () => {
+            const selectedTopic = document.getElementById('topicFilter')?.value;
+            
+            if (!selectedTopic) {
+                alert('Selecciona un tema primero');
+                return;
+            }
+
+            if (selectedTopic === 'all') {
+                if (confirm('⚠️ ¿Estás seguro de que quieres resetear TODOS los temas? Las preguntas acertadas volverán a aparecer.')) {
+                    resetTheme('all');
+                }
+            } else {
+                if (confirm(`⚠️ ¿Estás seguro de que quieres resetear el tema "${selectedTopic}"? Las preguntas acertadas volverán a aparecer.`)) {
+                    resetTheme(selectedTopic);
+                }
+            }
+        });
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            // No ejecutar atajos si el usuario está escribiendo en un input/textarea
+            const isTyping = document.activeElement.tagName === 'INPUT' || 
+                           document.activeElement.tagName === 'TEXTAREA' ||
+                           document.activeElement.id === 'csvImport';
+            
+            if (!isTyping) {
+                if (e.key === 'ArrowRight') nextCard();
+                if (e.key === 'ArrowLeft') prevCard();
+                if (e.key === ' ') {
+                    e.preventDefault();
+                    toggleFlip();
+                }
+            }
+            if (e.key === 'Escape') closeListModal();
+        });
+
+        // CSV Import
+        const csvImport = document.getElementById('csvImport');
+        if (csvImport) {
+            csvImport.addEventListener('change', handleCSVImport);
+        }
+
+        // ==================== INITIALIZATION ====================
+        loadFromLocalStorage();
+        applyTheme(); // Aplicar tema guardado
+        
+        // Mostrar notificación de nuevo día si aplica
+        if (state.newDayReset) {
+            setTimeout(() => {
+                showNotification('🌅 Nuevo día - ¡Todas las preguntas reseteadas!');
+            }, 500);
+        }
+        
+        // Update topic filters
+        function updateTopicFilters() {
+            const topics = getUniqueTopics();
+            const topicSelect = document.getElementById('topicFilter');
+            const modalTopicSelect = document.getElementById('modalTopicFilter');
+            
+            if (topicSelect) {
+                const currentValue = topicSelect.value || 'all';
+                topicSelect.innerHTML = '<option value="all">Todos los temas</option>' + 
+                    topics.map(topic => `<option value="${topic}">${topic}</option>`).join('');
+                topicSelect.value = currentValue;
+            }
+            
+            if (modalTopicSelect) {
+                const currentValue = modalTopicSelect.value || 'all';
+                modalTopicSelect.innerHTML = '<option value="all">Todos los temas</option>' + 
+                    topics.map(topic => `<option value="${topic}">${topic}</option>`).join('');
+                modalTopicSelect.value = currentValue;
+            }
+        }
+        
+        updateTopicFilters();
+        updateCardDisplay();
+        updateCardCount();
+
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(() => {
+                // Service worker registration failed, app still works offline
+            });
+        }
+    </script>
+</body>
+</html>
