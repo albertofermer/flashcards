@@ -10,7 +10,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="FlashCards">
     
-    <title>FlashCards - Estudia Inteligentemente</title>
+    <title>FlashCards</title>
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -89,26 +89,31 @@
         .card-flip {
             cursor: pointer;
             min-height: 320px;
+            max-height: 70vh;
             display: block;
+            overflow: hidden;
         }
 
         .card-flip-inner {
             position: relative;
             width: 100%;
-            height: auto;
+            height: 100%;
             min-height: 320px;
         }
 
         .card-flip-front, .card-flip-back {
             width: 100%;
+            height: 100%;
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             padding: 2rem;
             text-align: center;
             min-height: 320px;
+            overflow-y: auto;
             transition: opacity 0.3s ease;
             opacity: 1;
+            flex-direction: column;
         }
 
         .card-flip-back {
@@ -128,6 +133,14 @@
         .card-flip-inner.flipped .card-flip-back {
             opacity: 1;
             pointer-events: auto;
+        }
+
+        .card-flip-front > div, .card-flip-back > div {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
 
         .gradient-border {
@@ -236,6 +249,7 @@
         @media (max-width: 640px) {
             .card-flip {
                 min-height: 280px;
+                max-height: 60vh;
             }
 
             .card-flip-inner {
@@ -246,6 +260,7 @@
                 padding: 1.5rem;
                 font-size: 1.125rem;
             }
+        }
         }
     </style>
 </head>
@@ -265,15 +280,28 @@
                         <button id="themeToggle" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-4 rounded-lg text-sm transition" title="Cambiar tema">
                             🌙
                         </button>
+                        <button id="spacedRepToggle" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-4 rounded-lg text-sm transition" title="Repetición Espaciada">
+                            🧠 SR
+                        </button>
                         <button id="statsBtn" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-4 rounded-lg text-sm transition">
                             📊 Stats
+                        </button>
+                        <button id="studyModeBtn" class="bg-emerald-700 hover:bg-emerald-600 text-slate-100 font-semibold py-2 px-4 rounded-lg text-sm transition">
+                            🎯 Estudiar
                         </button>
                         <button id="viewListBtn" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-4 rounded-lg text-sm transition">
                             📋 Listado
                         </button>
+                        <button id="importBtn" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-4 rounded-lg text-sm transition" title="Importar CSV">
+                            📥 Importar
+                        </button>
                         <button id="exportBtn" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-4 rounded-lg text-sm transition">
                             💾 Exportar
                         </button>
+                        <button id="configBtn" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-4 rounded-lg text-sm transition" title="Configuración">
+                            ⚙️
+                        </button>
+                        <input type="file" id="csvImport" accept=".csv,.txt" class="hidden" />
                         <div class="badge">
                             <span id="cardCount">0</span>
                             <span>restantes</span>
@@ -291,7 +319,7 @@
                     <h2 class="text-xl font-semibold text-slate-200 mb-4">Tu Tarjeta</h2>
                     
                     <div id="cardContainer" class="card-flip">
-                        <div class="card-flip-inner gradient-border rounded-2xl overflow-hidden">
+                        <div class="card-flip-inner gradient-border rounded-2xl">
                             <div class="card-flip-front bg-gradient-to-br from-slate-700 to-slate-800 border-4 border-amber-400/20">
                                 <div class="text-center">
                                     <p class="text-sm font-semibold text-amber-300 mb-4 uppercase tracking-wider">Pregunta</p>
@@ -327,9 +355,6 @@
                     <div class="flex flex-col sm:flex-row gap-3">
                         <button id="prevBtn" class="button-hover flex-1 bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-3 px-6 rounded-lg transition">
                             ← Anterior
-                        </button>
-                        <button id="randomBtn" class="button-hover flex-1 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-900 font-bold py-3 px-6 rounded-lg transition">
-                            🎲 Siguiente
                         </button>
                         <button id="nextBtn" class="button-hover flex-1 bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-3 px-6 rounded-lg transition">
                             Siguiente →
@@ -413,23 +438,6 @@
                         ✨ Añadir Tarjeta
                     </button>
                 </form>
-            </div>
-
-            <!-- Import CSV Section -->
-            <div class="mb-12">
-                <h2 class="text-xl font-semibold text-slate-200 mb-4">📥 Importar desde Excel/CSV</h2>
-                <p class="text-slate-400 text-sm mb-4">Formato requerido: Tema ; Pregunta ; Respuesta (separadas por punto y coma)</p>
-                <div class="glass-effect rounded-2xl p-6 sm:p-8">
-                    <input 
-                        type="file" 
-                        id="csvImport" 
-                        accept=".csv,.txt" 
-                        class="w-full px-4 py-3 rounded-lg bg-slate-700 text-slate-100 cursor-pointer"
-                    />
-                    <p class="text-xs text-slate-400 mt-3">Ejemplo de formato:</p>
-                    <pre class="text-xs text-slate-300 mt-2 bg-slate-800/50 p-3 rounded overflow-x-auto">Matemáticas;¿Cuánto es 2+2?;4
-Historia;¿En qué año fue 1492?;Descubrimiento de América</pre>
-                </div>
             </div>
 
             <!-- Danger Zone -->
@@ -517,6 +525,35 @@ Historia;¿En qué año fue 1492?;Descubrimiento de América</pre>
                         <label class="block text-sm font-medium text-slate-300 mb-2">Respuesta</label>
                         <textarea id="editAnswer" class="input-field w-full px-4 py-3 rounded-lg resize-y min-h-20 max-h-60 text-slate-100"></textarea>
                     </div>
+                    <div class="border-t border-slate-600 pt-4 mt-4">
+                        <p class="text-sm font-semibold text-slate-300 mb-3">🧠 Spaced Repetition</p>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">Dificultad</label>
+                            <select id="editDifficulty" class="input-field w-full px-4 py-2 rounded-lg text-slate-100">
+                                <option value="1">🗨 Dífcil (repaso diario)</option>
+                                <option value="2">😐 Normal (cada 3 días)</option>
+                                <option value="3">😊 Fácil (cada 7 días)</option>
+                            </select>
+                        </div>
+                        <div class="mt-3">
+                            <label class="block text-sm font-medium text-slate-300 mb-2">Intervalos personalizados (en días)</label>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div>
+                                    <label class="text-xs text-slate-400">Dífcil</label>
+                                    <input type="number" id="editIntervalDifficult" value="1" min="1" max="30" class="input-field w-full px-2 py-1 rounded text-slate-100 text-sm">
+                                </div>
+                                <div>
+                                    <label class="text-xs text-slate-400">Normal</label>
+                                    <input type="number" id="editIntervalNormal" value="3" min="1" max="30" class="input-field w-full px-2 py-1 rounded text-slate-100 text-sm">
+                                </div>
+                                <div>
+                                    <label class="text-xs text-slate-400">Fácil</label>
+                                    <input type="number" id="editIntervalEasy" value="7" min="1" max="30" class="input-field w-full px-2 py-1 rounded text-slate-100 text-sm">
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-2">Estos intervalos se aplicarán globalmente a todas las tarjetas</p>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="mt-6 flex gap-3">
@@ -530,10 +567,138 @@ Historia;¿En qué año fue 1492?;Descubrimiento de América</pre>
             </div>
         </div>
 
+        <!-- Study Mode Config Modal -->
+        <div id="studyConfigModal" class="modal">
+            <div class="modal-content max-w-md">
+                <span class="modal-close" onclick="closeStudyConfigModal()">&times;</span>
+                <h2 class="text-2xl font-bold text-slate-100 mb-6">🎯 Iniciar Sesión de Estudio</h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Duración (minutos)</label>
+                        <input type="number" id="studyDuration" value="15" min="1" max="120" class="input-field w-full px-4 py-3 rounded-lg text-slate-100">
+                    </div>
+                    <p class="text-slate-400 text-sm">⏱️ El temporizador comenzará cuando respondas la primera pregunta</p>
+                </div>
+
+                <div class="mt-6 flex gap-3">
+                    <button onclick="closeStudyConfigModal()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-6 rounded-lg">
+                        Cancelar
+                    </button>
+                    <button onclick="startStudySession()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-6 rounded-lg">
+                        Comenzar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Study Mode Results Modal -->
+        <div id="studyResultsModal" class="modal">
+            <div class="modal-content max-w-lg">
+                <span class="modal-close" onclick="closeStudyResultsModal()">&times;</span>
+                <h2 class="text-2xl font-bold text-slate-100 mb-6">📊 Resultados de la Sesión</h2>
+                
+                <div class="space-y-4 mb-6">
+                    <div class="glass-effect rounded-lg p-4 border border-emerald-500/20">
+                        <p class="text-slate-400 text-sm mb-1">Tiempo de estudio</p>
+                        <p class="text-3xl font-bold text-emerald-400" id="resultTime">0:00</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="glass-effect rounded-lg p-4 border border-green-500/20">
+                            <p class="text-slate-400 text-sm mb-1">Correctas</p>
+                            <p class="text-2xl font-bold text-green-400" id="resultCorrect">0</p>
+                        </div>
+                        <div class="glass-effect rounded-lg p-4 border border-red-500/20">
+                            <p class="text-slate-400 text-sm mb-1">Incorrectas</p>
+                            <p class="text-2xl font-bold text-red-400" id="resultIncorrect">0</p>
+                        </div>
+                    </div>
+                    
+                    <div class="glass-effect rounded-lg p-4 border border-amber-500/20">
+                        <p class="text-slate-400 text-sm mb-1">Porcentaje de acierto</p>
+                        <p class="text-3xl font-bold text-amber-400" id="resultPercentage">0%</p>
+                    </div>
+                </div>
+
+                <button onclick="closeStudyResultsModal()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-lg">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+
+        <!-- Study Mode Timer Overlay -->
+        <div id="studyTimerOverlay" class="hidden fixed top-20 right-4 glass-effect rounded-lg p-4 border border-emerald-500/30 z-50 shadow-2xl">
+            <p class="text-emerald-400 font-bold text-lg mb-2">🎯 Modo Estudio</p>
+            <div class="space-y-1">
+                <p class="text-slate-300">⏱️ Tiempo: <span id="studyTimer" class="font-mono font-bold">0:00</span></p>
+                <p class="text-green-400">✓ Correctas: <span id="studyCorrectCount" class="font-bold">0</span></p>
+                <p class="text-red-400">✗ Incorrectas: <span id="studyIncorrectCount" class="font-bold">0</span></p>
+                <p class="text-amber-400">📈 Acierto: <span id="studyAccuracy" class="font-bold">0%</span></p>
+            </div>
+            <button onclick="endStudySession()" class="mt-3 w-full bg-red-600 hover:bg-red-700 text-white text-sm font-bold py-2 px-4 rounded">
+                Finalizar
+            </button>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settingsModal" class="modal">
+            <div class="modal-content max-w-md">
+                <span class="modal-close" onclick="closeSettingsModal()">&times;</span>
+                <h2 class="text-2xl font-bold text-slate-100 mb-6">⚙️ Configuración</h2>
+                
+                <div class="space-y-6">
+                    <!-- Spaced Repetition Settings -->
+                    <div class="border-b border-slate-600 pb-4">
+                        <h3 class="text-lg font-semibold text-slate-100 mb-4">🧠 Intervalos de Spaced Repetition</h3>
+                        <p class="text-xs text-slate-400 mb-4">Configura cada cuántos días aparecen las tarjetas según su dificultad</p>
+                        
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-300 mb-1">😰 Difícil (días)</label>
+                                <input type="number" id="configIntervalDifficult" value="1" min="1" max="30" class="input-field w-full px-3 py-2 rounded text-slate-100">
+                                <p class="text-xs text-slate-500 mt-1">Tarjetas que necesitan repaso frecuente</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-300 mb-1">😐 Normal (días)</label>
+                                <input type="number" id="configIntervalNormal" value="3" min="1" max="30" class="input-field w-full px-3 py-2 rounded text-slate-100">
+                                <p class="text-xs text-slate-500 mt-1">Tarjetas de dificultad media</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-300 mb-1">😊 Fácil (días)</label>
+                                <input type="number" id="configIntervalEasy" value="7" min="1" max="30" class="input-field w-full px-3 py-2 rounded text-slate-100">
+                                <p class="text-xs text-slate-500 mt-1">Tarjetas que ya dominas</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Study Mode Settings -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-slate-100 mb-4">🎯 Sesión de Estudio</h3>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-1">Duración por defecto (minutos)</label>
+                            <input type="number" id="configStudyDuration" value="15" min="1" max="120" class="input-field w-full px-3 py-2 rounded text-slate-100">
+                            <p class="text-xs text-slate-500 mt-1">Tiempo inicial recomendado para sesiones</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex gap-3">
+                    <button onclick="closeSettingsModal()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg">
+                        Cerrar
+                    </button>
+                    <button onclick="saveSettings()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-lg">
+                        Guardar
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Footer -->
         <footer class="border-t border-slate-border glass-effect mt-12">
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-slate-400 text-sm">
-                <p>Hecho con ❤️ para estudiantes. v1.0</p>
+                <p>Hecho para Noelia. v1.0</p>
+                <p>Mucha suerte :)</p>
             </div>
         </footer>
     </div>
@@ -551,7 +716,23 @@ Historia;¿En qué año fue 1492?;Descubrimiento de América</pre>
             newDayReset: false, // Bandera para notificar reset automático
             searchQuery: '', // Búsqueda actual
             editingCardId: null, // ID de la tarjeta que se está editando
-            theme: localStorage.getItem('theme') || 'dark' // dark o light
+            theme: localStorage.getItem('theme') || 'dark', // dark o light
+            // Modo Estudio
+            studyMode: false,
+            studyStartTime: null,
+            studyDuration: 15, // minutos
+            studyCorrect: 0,
+            studyIncorrect: 0,
+            studyTimer: null,
+            studyHistory: JSON.parse(localStorage.getItem('studyHistory') || '[]'),
+            // Spaced Repetition
+            spacedRepetitionEnabled: localStorage.getItem('spacedRepetitionEnabled') === 'true',
+            cardDifficulty: JSON.parse(localStorage.getItem('cardDifficulty') || '{}'), // {cardId: 1|2|3} donde 1=difícil, 2=normal, 3=fácil
+            cardLastReview: JSON.parse(localStorage.getItem('cardLastReview') || '{}'), // {cardId: timestamp}
+            // Intervalos personalizados para SR (en días)
+            srIntervals: JSON.parse(localStorage.getItem('srIntervals') || '{"difficult": 1, "normal": 3, "easy": 7}'),
+            nextReplayTimestamp: null,
+            nextReplayTimer: null
         };
 
         // ==================== DOM ELEMENTS ====================
@@ -560,7 +741,6 @@ Historia;¿En qué año fue 1492?;Descubrimiento de América</pre>
         const addCardForm = document.getElementById('addCardForm');
         const questionInput = document.getElementById('question');
         const answerInput = document.getElementById('answer');
-        const randomBtn = document.getElementById('randomBtn');
         const nextBtn = document.getElementById('nextBtn');
         const prevBtn = document.getElementById('prevBtn');
         const deleteBtn = document.getElementById('deleteBtn');
@@ -577,6 +757,11 @@ Historia;¿En qué año fue 1492?;Descubrimiento de América</pre>
                 lastDate: today
             };
             localStorage.setItem('flashcards', JSON.stringify(dataToSave));
+            
+            // Guardar datos de Spaced Repetition
+            localStorage.setItem('cardDifficulty', JSON.stringify(state.cardDifficulty));
+            localStorage.setItem('cardLastReview', JSON.stringify(state.cardLastReview));
+            localStorage.setItem('srIntervals', JSON.stringify(state.srIntervals));
         }
 
         function loadFromLocalStorage() {
@@ -591,9 +776,13 @@ Historia;¿En qué año fue 1492?;Descubrimiento de América</pre>
                 const lastDate = data.lastDate || today;
                 
                 if (today !== lastDate) {
-                    // Es un nuevo día, resetear todas las preguntas
-                    state.answeredCards = {};
-                    state.newDayReset = true; // Bandera para mostrar notificación después
+                    // Es un nuevo día - SOLO resetear modo normal (NO Spaced Repetition)
+                    // En modo SR, cada tarjeta tiene su propio intervalo
+                    if (!state.spacedRepetitionEnabled) {
+                        state.answeredCards = {};
+                        state.newDayReset = true; // Bandera para mostrar notificación después
+                    }
+                    // SR mantiene sus propios datos (cardDifficulty, cardLastReview)
                     saveToLocalStorage();
                 }
             }
@@ -619,7 +808,16 @@ Historia;¿En qué año fue 1492?;Descubrimiento de América</pre>
 
         function getActiveCards() {
             // Retorna las tarjetas que no han sido respondidas correctamente
-            return state.cards.filter(card => state.answeredCards[card.id] !== 'correct');
+            let cards = state.cards.filter(card => state.answeredCards[card.id] !== 'correct');
+            
+            // Si Spaced Repetition está activo, aplicar filtros adicionales
+            if (state.spacedRepetitionEnabled) {
+                // Incluir también tarjetas marcadas como correctas pero que necesitan repaso
+                const allCards = state.cards.filter(card => shouldShowCard(card));
+                return allCards;
+            }
+            
+            return cards;
         }
 
         function getCardsByTopic(topic, cards = null) {
@@ -630,6 +828,12 @@ Historia;¿En qué año fue 1492?;Descubrimiento de América</pre>
 
         // ==================== CARD DISPLAY ====================
         function updateCardDisplay() {
+            // Limpiar timer anterior si existe
+            if (state.nextReplayTimer) {
+                clearInterval(state.nextReplayTimer);
+                state.nextReplayTimer = null;
+            }
+            
             let activeCards = getActiveCards();
             
             // Aplicar filtro de búsqueda
@@ -644,34 +848,90 @@ Historia;¿En qué año fue 1492?;Descubrimiento de América</pre>
             const displayCards = state.filterTopic === 'all' ? activeCards : getCardsByTopic(state.filterTopic, activeCards);
 
             if (displayCards.length === 0) {
+                // Mensaje diferente para modo Spaced Repetition
+                let message = '';
+                let subtitle = '';
+                
+                if (state.spacedRepetitionEnabled) {
+                    const allCards = state.cards.length;
+                    const difficultCount = Object.values(state.cardDifficulty).filter(d => d === 1).length;
+                    const normalCount = Object.values(state.cardDifficulty).filter(d => d === 2).length;
+                    const easyCount = Object.values(state.cardDifficulty).filter(d => d === 3).length;
+                    
+                    // Calcular próxima tarjeta disponible usando intervalos personalizados
+                    let nextAvailable = null;
+                    state.cards.forEach(card => {
+                        const difficulty = state.cardDifficulty[card.id] || 1;
+                        const lastReview = state.cardLastReview[card.id] || 0;
+                        const difficultyMap = { 1: 'difficult', 2: 'normal', 3: 'easy' };
+                        const intervalKey = difficultyMap[difficulty];
+                        const interval = state.srIntervals[intervalKey] || 1;
+                        const nextReviewDate = lastReview + (interval * 24 * 60 * 60 * 1000);
+                        
+                        if (!nextAvailable || nextReviewDate < nextAvailable) {
+                            nextAvailable = nextReviewDate;
+                        }
+                    });
+                    
+                    const msUntilNext = nextAvailable ? Math.max(0, nextAvailable - Date.now()) : 0;
+                    
+                    message = '¡Todo repasado por hoy! 🎯';
+                    subtitle = `
+                        <p class="text-sm text-slate-400 mt-4">Resumen de tus tarjetas:</p>
+                        <div class="mt-3 space-y-2">
+                            <p class="text-sm">😰 Difíciles: <span class="font-bold text-red-400">${difficultCount}</span> (cada ${state.srIntervals.difficult} día${state.srIntervals.difficult !== 1 ? 's' : ''})</p>
+                            <p class="text-sm">😐 Normales: <span class="font-bold text-amber-400">${normalCount}</span> (cada ${state.srIntervals.normal} días)</p>
+                            <p class="text-sm">😊 Fáciles: <span class="font-bold text-green-400">${easyCount}</span> (cada ${state.srIntervals.easy} días)</p>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-4">
+                            ${msUntilNext > 0 ? 
+                                `⏰ Próximo repaso en <span id="nextReplayTimer" class="font-mono font-bold">--:--:--</span>` : 
+                                '✨ ¡Nuevas tarjetas disponibles pronto!'}
+                        </p>
+                        <p class="text-xs text-emerald-400 mt-3">💡 Puedes desactivar SR para repasar todas ahora</p>
+                    `;
+                    
+                    // Guardar timestamp para el contador
+                    if (msUntilNext > 0) {
+                        state.nextReplayTimestamp = Date.now() + msUntilNext;
+                    }
+                } else {
+                    message = 'Has respondido todas las preguntas correctamente 🎉';
+                    subtitle = '';
+                }
+                
                 cardContainer.innerHTML = `
-                    <div class="card-flip-inner gradient-border rounded-2xl overflow-hidden">
+                    <div class="card-flip-inner gradient-border rounded-2xl">
                         <div class="card-flip-front bg-gradient-to-br from-slate-700 to-slate-800 border-4 border-amber-400/20">
                             <div class="text-center">
                                 <p class="text-sm font-semibold text-amber-300 mb-4 uppercase tracking-wider">¡Excelente!</p>
-                                <p class="text-xl sm:text-2xl font-bold leading-relaxed">Has respondido todas las preguntas correctamente 🎉</p>
+                                <p class="text-xl sm:text-2xl font-bold leading-relaxed">${message}</p>
+                                ${subtitle}
                             </div>
                         </div>
                     </div>
                 `;
                 progressBar.style.display = 'none';
                 nextBtn.disabled = true;
+                
+                // Iniciar contador del próximo repaso si es necesario
+                if (state.spacedRepetitionEnabled && state.nextReplayTimestamp) {
+                    startNextReplayTimer();
+                }
                 prevBtn.disabled = true;
-                randomBtn.disabled = true;
                 return;
             }
 
             progressBar.style.display = 'block';
             nextBtn.disabled = false;
             prevBtn.disabled = false;
-            randomBtn.disabled = false;
 
             const card = displayCards[state.currentIndex];
             const isFlipped = state.isFlipped;
 
             cardContainer.innerHTML = `
                 <div class="card-flip" onclick="toggleFlip()">
-                    <div class="card-flip-inner gradient-border rounded-2xl overflow-hidden ${isFlipped ? 'flipped' : ''}">
+                    <div class="card-flip-inner gradient-border rounded-2xl ${isFlipped ? 'flipped' : ''}">
                         <div class="card-flip-front bg-gradient-to-br from-slate-700 to-slate-800 border-4 border-amber-400/20">
                             <div class="text-center">
                                 <p class="text-xs font-semibold text-emerald-300 mb-2 uppercase tracking-wider">${card.topic || 'Sin tema'}</p>
@@ -691,7 +951,7 @@ Historia;¿En qué año fue 1492?;Descubrimiento de América</pre>
                     </div>
                 </div>
 
-                <div class="flex gap-3 mt-6">
+                <div class="flex gap-3 mt-6" id="normalButtons">
                     <button onclick="markCardIncorrect()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition">
                         ✗ Fallida
                     </button>
@@ -699,7 +959,26 @@ Historia;¿En qué año fue 1492?;Descubrimiento de América</pre>
                         ✓ Correcta
                     </button>
                 </div>
+                
+                <div class="hidden gap-3 mt-6" id="spacedRepButtons">
+                    <button onclick="markCardDifficulty(1)" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition">
+                        😰 Difícil
+                    </button>
+                    <button onclick="markCardDifficulty(2)" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-6 rounded-lg transition">
+                        😐 Normal
+                    </button>
+                    <button onclick="markCardDifficulty(3)" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition">
+                        😊 Fácil
+                    </button>
+                </div>
             `;
+            
+            // Mostrar botones correctos según modo
+            if (state.spacedRepetitionEnabled) {
+                cardContainer.querySelector('#normalButtons').classList.add('hidden');
+                cardContainer.querySelector('#spacedRepButtons').classList.remove('hidden');
+                cardContainer.querySelector('#spacedRepButtons').classList.add('flex');
+            }
 
             // Update progress bar
             const progress = ((state.currentIndex + 1) / displayCards.length) * 100;
@@ -723,6 +1002,13 @@ Historia;¿En qué año fue 1492?;Descubrimiento de América</pre>
             const card = displayCards[state.currentIndex];
             
             state.answeredCards[card.id] = 'correct';
+            
+            // Contar en modo estudio
+            if (state.studyMode) {
+                state.studyCorrect++;
+                updateStudyCounters();
+            }
+            
             saveToLocalStorage();
             updateCardCount();
             
@@ -750,6 +1036,13 @@ Historia;¿En qué año fue 1492?;Descubrimiento de América</pre>
             const card = displayCards[state.currentIndex];
             
             state.answeredCards[card.id] = 'incorrect';
+            
+            // Contar en modo estudio
+            if (state.studyMode) {
+                state.studyIncorrect++;
+                updateStudyCounters();
+            }
+            
             saveToLocalStorage();
             showNotification('📝 Pregunta marcada para repetir');
             
@@ -815,21 +1108,29 @@ Historia;¿En qué año fue 1492?;Descubrimiento de América</pre>
                 return;
             }
 
-            listContent.innerHTML = cards.map((card, idx) => `
+            listContent.innerHTML = cards.map((card, idx) => {
+                const difficulty = state.cardDifficulty[card.id] || 0;
+                const difficultyEmoji = { 0: '?', 1: '😰', 2: '😐', 3: '😊' }[difficulty];
+                const difficultyLabel = { 0: 'Sin dificultad', 1: 'Difícil', 2: 'Normal', 3: 'Fácil' }[difficulty];
+                
+                return `
                 <div class="glass-effect rounded-lg p-4 border border-slate-600">
                     <div class="flex items-start justify-between gap-3">
                         <div class="flex-1">
                             <p class="text-xs font-semibold text-emerald-300 mb-2">${card.topic || 'Sin tema'}</p>
                             <p class="font-semibold text-slate-100 mb-2">P: ${escapeHtml(card.question)}</p>
                             <p class="text-sm text-slate-400">R: ${escapeHtml(card.answer)}</p>
+                            ${state.spacedRepetitionEnabled ? `<p class="text-xs text-slate-500 mt-2">SR: ${difficultyLabel}</p>` : ''}
                         </div>
-                        <div class="flex items-center gap-2">
+                        <div class="flex flex-col items-center gap-2">
                             <button onclick="openEditModal('${card.id}')" class="text-blue-400 hover:text-blue-300 text-lg" title="Editar tarjeta">✏️</button>
+                            ${state.spacedRepetitionEnabled ? `<button onclick="cycleDifficulty('${card.id}')" class="text-xl cursor-pointer hover:scale-110" title="${difficultyLabel}">${difficultyEmoji}</button>` : ''}
                             ${state.answeredCards[card.id] === 'correct' ? '<span class="text-green-400 text-lg">✓</span>' : '<span class="text-slate-500">○</span>'}
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
 
         function updateModalTopicFilter() {
@@ -1007,6 +1308,13 @@ Historia;¿En qué año fue 1492?;Descubrimiento de América</pre>
             document.getElementById('editTopic').value = card.topic || '';
             document.getElementById('editQuestion').value = card.question || '';
             document.getElementById('editAnswer').value = card.answer || '';
+            
+            // Cargar dificultad e intervalos
+            const difficulty = state.cardDifficulty[cardId] || 1;
+            document.getElementById('editDifficulty').value = difficulty;
+            document.getElementById('editIntervalDifficult').value = state.srIntervals.difficult || 1;
+            document.getElementById('editIntervalNormal').value = state.srIntervals.normal || 3;
+            document.getElementById('editIntervalEasy').value = state.srIntervals.easy || 7;
 
             const modal = document.getElementById('editModal');
             modal.classList.add('active');
@@ -1027,6 +1335,10 @@ Historia;¿En qué año fue 1492?;Descubrimiento de América</pre>
             const newTopic = document.getElementById('editTopic').value.trim() || 'Sin tema';
             const newQuestion = document.getElementById('editQuestion').value;
             const newAnswer = document.getElementById('editAnswer').value;
+            const newDifficulty = parseInt(document.getElementById('editDifficulty').value);
+            const newIntervalDifficult = parseInt(document.getElementById('editIntervalDifficult').value);
+            const newIntervalNormal = parseInt(document.getElementById('editIntervalNormal').value);
+            const newIntervalEasy = parseInt(document.getElementById('editIntervalEasy').value);
 
             if (!newQuestion || !newAnswer) {
                 alert('La pregunta y respuesta no pueden estar vacías');
@@ -1036,6 +1348,14 @@ Historia;¿En qué año fue 1492?;Descubrimiento de América</pre>
             card.topic = newTopic;
             card.question = newQuestion;
             card.answer = newAnswer;
+            
+            // Guardar dificultad e intervalos
+            state.cardDifficulty[state.editingCardId] = newDifficulty;
+            state.srIntervals = {
+                difficult: newIntervalDifficult,
+                normal: newIntervalNormal,
+                easy: newIntervalEasy
+            };
 
             saveToLocalStorage();
             updateTopicFilters();
@@ -1094,6 +1414,285 @@ Historia;¿En qué año fue 1492?;Descubrimiento de América</pre>
             showNotification('💾 Tarjetas exportadas correctamente');
         }
 
+        // ==================== STUDY MODE ====================
+        function openStudyConfigModal() {
+            document.getElementById('studyConfigModal').classList.add('active');
+        }
+
+        function closeStudyConfigModal() {
+            document.getElementById('studyConfigModal').classList.remove('active');
+        }
+
+        function startStudySession() {
+            const duration = parseInt(document.getElementById('studyDuration').value);
+            if (!duration || duration < 1) {
+                alert('Por favor ingresa una duración válida');
+                return;
+            }
+
+            state.studyMode = true;
+            state.studyDuration = duration;
+            state.studyStartTime = Date.now();
+            state.studyCorrect = 0;
+            state.studyIncorrect = 0;
+
+            closeStudyConfigModal();
+            document.getElementById('studyTimerOverlay').classList.remove('hidden');
+            
+            // Iniciar temporizador
+            state.studyTimer = setInterval(updateStudyTimer, 1000);
+            
+            showNotification('🎯 Sesión de estudio iniciada');
+        }
+
+        function updateStudyTimer() {
+            const elapsed = Math.floor((Date.now() - state.studyStartTime) / 1000);
+            const hours = Math.floor(elapsed / 3600);
+            const minutes = Math.floor((elapsed % 3600) / 60);
+            const seconds = elapsed % 60;
+            
+            document.getElementById('studyTimer').textContent = 
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+            // Verificar si se acabó el tiempo
+            if (minutes >= state.studyDuration) {
+                endStudySession();
+            }
+        }
+
+        function updateStudyCounters() {
+            document.getElementById('studyCorrectCount').textContent = state.studyCorrect;
+            document.getElementById('studyIncorrectCount').textContent = state.studyIncorrect;
+            
+            const total = state.studyCorrect + state.studyIncorrect;
+            const accuracy = total > 0 ? Math.round((state.studyCorrect / total) * 100) : 0;
+            document.getElementById('studyAccuracy').textContent = accuracy + '%';
+        }
+
+        function endStudySession() {
+            if (!state.studyMode) return;
+
+            clearInterval(state.studyTimer);
+            
+            const elapsed = Math.floor((Date.now() - state.studyStartTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            const total = state.studyCorrect + state.studyIncorrect;
+            const accuracy = total > 0 ? Math.round((state.studyCorrect / total) * 100) : 0;
+
+            // Guardar en historial
+            const session = {
+                date: new Date().toISOString(),
+                duration: elapsed,
+                correct: state.studyCorrect,
+                incorrect: state.studyIncorrect,
+                accuracy: accuracy
+            };
+            state.studyHistory.push(session);
+            localStorage.setItem('studyHistory', JSON.stringify(state.studyHistory));
+
+            // Mostrar resultados con formato hh:mm:ss
+            const hours = Math.floor(elapsed / 3600);
+            const displayHours = hours > 0 ? `${hours}:` : '';
+            document.getElementById('resultTime').textContent = 
+                `${displayHours}${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('resultCorrect').textContent = state.studyCorrect;
+            document.getElementById('resultIncorrect').textContent = state.studyIncorrect;
+            document.getElementById('resultPercentage').textContent = accuracy + '%';
+
+            // Resetear modo estudio
+            state.studyMode = false;
+            state.studyStartTime = null;
+            state.studyCorrect = 0;
+            state.studyIncorrect = 0;
+
+            document.getElementById('studyTimerOverlay').classList.add('hidden');
+            document.getElementById('studyResultsModal').classList.add('active');
+        }
+
+        function closeStudyResultsModal() {
+            document.getElementById('studyResultsModal').classList.remove('active');
+        }
+
+        // ==================== SPACED REPETITION ====================
+        function toggleSpacedRepetition() {
+            state.spacedRepetitionEnabled = !state.spacedRepetitionEnabled;
+            localStorage.setItem('spacedRepetitionEnabled', state.spacedRepetitionEnabled);
+            
+            const btn = document.getElementById('spacedRepToggle');
+            if (state.spacedRepetitionEnabled) {
+                btn.classList.remove('bg-slate-700', 'hover:bg-slate-600');
+                btn.classList.add('bg-purple-700', 'hover:bg-purple-600');
+                showNotification('🧠 Repetición Espaciada ACTIVADA');
+            } else {
+                btn.classList.remove('bg-purple-700', 'hover:bg-purple-600');
+                btn.classList.add('bg-slate-700', 'hover:bg-slate-600');
+                showNotification('🧠 Repetición Espaciada DESACTIVADA');
+            }
+            
+            updateCardDisplay();
+        }
+
+        function applySpacedRepToggleStyle() {
+            const btn = document.getElementById('spacedRepToggle');
+            if (btn && state.spacedRepetitionEnabled) {
+                btn.classList.remove('bg-slate-700', 'hover:bg-slate-600');
+                btn.classList.add('bg-purple-700', 'hover:bg-purple-600');
+            }
+        }
+
+        function markCardDifficulty(level) {
+            const activeCards = getActiveCards();
+            const displayCards = state.filterTopic === 'all' ? activeCards : getCardsByTopic(state.filterTopic);
+            const card = displayCards[state.currentIndex];
+            
+            // Guardar nivel de dificultad (1=difícil, 2=normal, 3=fácil)
+            state.cardDifficulty[card.id] = level;
+            state.cardLastReview[card.id] = Date.now();
+            
+            // Marcar como correcta en el sistema normal
+            state.answeredCards[card.id] = 'correct';
+            
+            // Contar en modo estudio si está activo
+            if (state.studyMode) {
+                state.studyCorrect++;
+                updateStudyCounters();
+            }
+            
+            saveToLocalStorage();
+            updateCardCount();
+            
+            // Mensajes según dificultad
+            const messages = {
+                1: '😰 La verás pronto',
+                2: '😐 La verás en unos días',
+                3: '😊 ¡Dominada! La verás en una semana'
+            };
+            
+            const remainingCards = state.filterTopic === 'all' ? getActiveCards() : getCardsByTopic(state.filterTopic);
+            
+            if (remainingCards.length === 0) {
+                state.currentIndex = 0;
+                state.isFlipped = false;
+                showNotification('🎉 ¡Excelente! ¡Todas las preguntas respondidas!');
+                updateCardDisplay();
+            } else {
+                nextCard();
+            }
+        }
+
+        function shouldShowCard(card) {
+            if (!state.spacedRepetitionEnabled) return true;
+            
+            const difficulty = state.cardDifficulty[card.id] || 1; // Por defecto difícil
+            const lastReview = state.cardLastReview[card.id] || 0;
+            const daysSinceReview = (Date.now() - lastReview) / (1000 * 60 * 60 * 24);
+            
+            // Usar intervalos personalizados (mapear 1=difficult, 2=normal, 3=easy)
+            const difficultyMap = { 1: 'difficult', 2: 'normal', 3: 'easy' };
+            const intervalKey = difficultyMap[difficulty];
+            const interval = state.srIntervals[intervalKey] || 1;
+            
+            return daysSinceReview >= interval;
+        }
+
+        function cycleDifficulty(cardId) {
+            const currentDifficulty = state.cardDifficulty[cardId] || 0;
+            const nextDifficulty = (currentDifficulty % 3) + 1; // Ciclar 1→2→3→1
+            state.cardDifficulty[cardId] = nextDifficulty;
+            saveToLocalStorage();
+            updateListContent();
+            
+            const emoji = { 1: '😰', 2: '😐', 3: '😊' }[nextDifficulty];
+            const label = { 1: 'Difícil', 2: 'Normal', 3: 'Fácil' }[nextDifficulty];
+            showNotification(`${emoji} Dificultad cambiada a ${label}`);
+        }
+
+        // ==================== NEXT REPLAY TIMER ====================
+        function startNextReplayTimer() {
+            // Limpiar timer anterior si existe
+            if (state.nextReplayTimer) {
+                clearInterval(state.nextReplayTimer);
+            }
+            
+            state.nextReplayTimer = setInterval(() => {
+                const timerElement = document.getElementById('nextReplayTimer');
+                if (!timerElement) {
+                    clearInterval(state.nextReplayTimer);
+                    return;
+                }
+                
+                const msRemaining = Math.max(0, state.nextReplayTimestamp - Date.now());
+                
+                if (msRemaining <= 0) {
+                    timerElement.textContent = '00:00:00';
+                    clearInterval(state.nextReplayTimer);
+                    return;
+                }
+                
+                const hours = Math.floor(msRemaining / (1000 * 60 * 60));
+                const minutes = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((msRemaining % (1000 * 60)) / 1000);
+                
+                timerElement.textContent = 
+                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        function getActiveCardsWithSpacedRep() {
+            let cards = getActiveCards();
+            
+            if (state.spacedRepetitionEnabled) {
+                // Filtrar por intervalo de repetición
+                cards = cards.filter(card => shouldShowCard(card));
+                
+                // Priorizar tarjetas difíciles
+                cards.sort((a, b) => {
+                    const diffA = state.cardDifficulty[a.id] || 1;
+                    const diffB = state.cardDifficulty[b.id] || 1;
+                    return diffA - diffB; // Difíciles primero
+                });
+            }
+            
+            return cards;
+        }
+
+        // ==================== SETTINGS MODAL FUNCTIONS ====================
+        function openSettingsModal() {
+            // Cargar valores actuales
+            document.getElementById('configIntervalDifficult').value = state.srIntervals.difficult;
+            document.getElementById('configIntervalNormal').value = state.srIntervals.normal;
+            document.getElementById('configIntervalEasy').value = state.srIntervals.easy;
+            
+            document.getElementById('settingsModal').classList.add('active');
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+
+        function saveSettings() {
+            const difficultInterval = parseInt(document.getElementById('configIntervalDifficult').value) || 1;
+            const normalInterval = parseInt(document.getElementById('configIntervalNormal').value) || 3;
+            const easyInterval = parseInt(document.getElementById('configIntervalEasy').value) || 7;
+            
+            // Validar que sean positivos y en orden lógico
+            if (difficultInterval <= 0 || normalInterval <= 0 || easyInterval <= 0) {
+                showNotification('❌ Los intervalos deben ser mayores a 0');
+                return;
+            }
+            
+            state.srIntervals = {
+                difficult: difficultInterval,
+                normal: normalInterval,
+                easy: easyInterval
+            };
+            
+            saveToLocalStorage();
+            closeSettingsModal();
+            showNotification('⚙️ Configuración guardada correctamente');
+        }
+
         // ==================== EVENT LISTENERS ====================
         document.getElementById('addCardForm')?.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -1103,7 +1702,6 @@ Historia;¿En qué año fue 1492?;Descubrimiento de América</pre>
 
         nextBtn.addEventListener('click', nextCard);
         prevBtn.addEventListener('click', prevCard);
-        randomBtn.addEventListener('click', nextCard);
         deleteBtn.addEventListener('click', deleteAllCards);
 
         // View list button
@@ -1112,12 +1710,28 @@ Historia;¿En qué año fue 1492?;Descubrimiento de América</pre>
         // Theme toggle
         document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
 
+        // Spaced Repetition toggle
+        document.getElementById('spacedRepToggle')?.addEventListener('click', toggleSpacedRepetition);
+
         // Statistics
         document.getElementById('statsBtn')?.addEventListener('click', openStatsModal);
         document.getElementById('closeStatsModal')?.addEventListener('click', closeStatsModal);
         document.getElementById('statsModal')?.addEventListener('click', (e) => {
             if (e.target === document.getElementById('statsModal')) {
                 closeStatsModal();
+            }
+        });
+
+        // Study Mode
+        document.getElementById('studyModeBtn')?.addEventListener('click', openStudyConfigModal);
+        document.getElementById('studyConfigModal')?.addEventListener('click', (e) => {
+            if (e.target === document.getElementById('studyConfigModal')) {
+                closeStudyConfigModal();
+            }
+        });
+        document.getElementById('studyResultsModal')?.addEventListener('click', (e) => {
+            if (e.target === document.getElementById('studyResultsModal')) {
+                closeStudyResultsModal();
             }
         });
 
@@ -1132,6 +1746,14 @@ Historia;¿En qué año fue 1492?;Descubrimiento de América</pre>
 
         // Export CSV
         document.getElementById('exportBtn')?.addEventListener('click', exportToCSV);
+
+        // Settings Modal
+        document.getElementById('configBtn')?.addEventListener('click', openSettingsModal);
+        document.getElementById('settingsModal')?.addEventListener('click', (e) => {
+            if (e.target === document.getElementById('settingsModal')) {
+                closeSettingsModal();
+            }
+        });
 
         // Search
         document.getElementById('searchInput')?.addEventListener('input', (e) => {
@@ -1210,9 +1832,15 @@ Historia;¿En qué año fue 1492?;Descubrimiento de América</pre>
             csvImport.addEventListener('change', handleCSVImport);
         }
 
+        // Import button triggers file input
+        document.getElementById('importBtn')?.addEventListener('click', () => {
+            document.getElementById('csvImport')?.click();
+        });
+
         // ==================== INITIALIZATION ====================
         loadFromLocalStorage();
         applyTheme(); // Aplicar tema guardado
+        applySpacedRepToggleStyle(); // Aplicar estilo de Spaced Repetition
         
         // Mostrar notificación de nuevo día si aplica
         if (state.newDayReset) {
