@@ -878,6 +878,7 @@
             spacedRepetitionEnabled: localStorage.getItem('spacedRepetitionEnabled') === 'true',
             cardDifficulty: JSON.parse(localStorage.getItem('cardDifficulty') || '{}'), // {cardId: 1|2|3} donde 1=difícil, 2=normal, 3=fácil
             cardLastReview: JSON.parse(localStorage.getItem('cardLastReview') || '{}'), // {cardId: timestamp}
+            selectedDifficulty: null, // Dificultad TEMPORAL seleccionada, se confirma con ✓ o ✗
             // Intervalos personalizados para SR (en días)
             srIntervals: JSON.parse(localStorage.getItem('srIntervals') || '{"difficult": 1, "normal": 3, "easy": 7}'),
             nextReplayTimestamp: null,
@@ -1182,6 +1183,13 @@
             
             state.answeredCards[card.id] = 'correct';
             
+            // En modo SR, guardar la dificultad seleccionada si existe
+            if (state.spacedRepetitionEnabled && state.selectedDifficulty) {
+                state.cardDifficulty[card.id] = state.selectedDifficulty;
+                state.cardLastReview[card.id] = Date.now();
+                state.selectedDifficulty = null; // Resetear para próxima tarjeta
+            }
+            
             // Contar en modo estudio
             if (state.studyMode) {
                 state.studyCorrect++;
@@ -1216,6 +1224,13 @@
             const card = displayCards[state.currentIndex];
             
             state.answeredCards[card.id] = 'incorrect';
+            
+            // En modo SR, guardar la dificultad seleccionada si existe
+            if (state.spacedRepetitionEnabled && state.selectedDifficulty) {
+                state.cardDifficulty[card.id] = state.selectedDifficulty;
+                state.cardLastReview[card.id] = Date.now();
+                state.selectedDifficulty = null; // Resetear para próxima tarjeta
+            }
             
             // Contar en modo estudio
             if (state.studyMode) {
@@ -1348,6 +1363,7 @@
                 state.currentIndex = (state.currentIndex + 1) % displayCards.length;
             }
             state.isFlipped = false;
+            state.selectedDifficulty = null; // Resetear dificultad seleccionada para nueva tarjeta
             updateCardDisplay();
         }
 
@@ -1358,6 +1374,7 @@
             if (displayCards.length === 0) return;
             state.currentIndex = (state.currentIndex - 1 + displayCards.length) % displayCards.length;
             state.isFlipped = false;
+            state.selectedDifficulty = null; // Resetear dificultad seleccionada para nueva tarjeta
             updateCardDisplay();
         }
 
@@ -1862,20 +1879,14 @@
             const displayCards = state.filterTopic === 'all' ? activeCards : getCardsByTopic(state.filterTopic);
             const card = displayCards[state.currentIndex];
             
-            // Guardar nivel de dificultad (1=difícil, 2=normal, 3=fácil)
-            state.cardDifficulty[card.id] = level;
-            state.cardLastReview[card.id] = Date.now();
-            
-            // NO marcar como correcta aquí - esperar a que presione ✓ o ✗
-            
-            saveToLocalStorage();
-            invalidateCache();
+            // Guardar nivel de dificultad TEMPORAL (no confundir con cardDifficulty guardada)
+            state.selectedDifficulty = level;
             
             // Mensajes según dificultad
             const messages = {
-                1: '😰 Dificultad asignada: Difícil',
-                2: '😐 Dificultad asignada: Normal',
-                3: '😊 Dificultad asignada: Fácil'
+                1: '😰 Dificultad seleccionada: Difícil (confirma con ✓ o ✗)',
+                2: '😐 Dificultad seleccionada: Normal (confirma con ✓ o ✗)',
+                3: '😊 Dificultad seleccionada: Fácil (confirma con ✓ o ✗)'
             };
             
             showNotification(messages[level]);
