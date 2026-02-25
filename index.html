@@ -378,6 +378,44 @@
                     </div>
                 </div>
 
+                <!-- Answer/Result Buttons (Fixed Position) -->
+                <div id="answerButtonsContainer" class="mt-6 pt-4 border-t border-slate-600 mb-6">
+                    <!-- Normal Mode Buttons -->
+                    <div id="normalButtonsFixed" class="flex gap-2 flex-col sm:flex-row">
+                        <button onclick="markCardIncorrect()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
+                            ✗ Fallida
+                        </button>
+                        <button onclick="markCardCorrect()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
+                            ✓ Correcta
+                        </button>
+                    </div>
+                    
+                    <!-- Spaced Repetition Buttons -->
+                    <div id="spacedRepButtonsFixed" class="hidden flex-col gap-2">
+                        <div class="text-xs text-slate-300 text-center mt-2 font-semibold">Marcar dificultad:</div>
+                        <div class="flex gap-2">
+                            <button onclick="cycleDifficultyOnly(1)" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-lg transition text-sm">
+                                😰 Difícil
+                            </button>
+                            <button onclick="cycleDifficultyOnly(2)" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-3 rounded-lg transition text-sm">
+                                😐 Normal
+                            </button>
+                            <button onclick="cycleDifficultyOnly(3)" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 rounded-lg transition text-sm">
+                                😊 Fácil
+                            </button>
+                        </div>
+                        <div class="text-xs text-slate-300 text-center mt-4 font-semibold">Resultado:</div>
+                        <div class="flex gap-2">
+                            <button onclick="markCardIncorrect()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
+                                ✗ Fallida
+                            </button>
+                            <button onclick="markCardCorrect()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
+                                ✓ Correcta
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Action Buttons -->
                 <div class="flex flex-col gap-4 mb-6">
                     <!-- Search Bar -->
@@ -1103,52 +1141,22 @@
                         </div>
                     </div>
                 </div>
-                
-                <!-- Botones FUERA de la tarjeta -->
-                <div class="mt-6 pt-4 border-t border-slate-600" id="cardButtons">
-                    <div class="flex gap-2 flex-col sm:flex-row" id="normalButtonsOutside">
-                        <button onclick="markCardIncorrect()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
-                            ✗ Fallida
-                        </button>
-                        <button onclick="markCardCorrect()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
-                            ✓ Correcta
-                        </button>
-                    </div>
-                    
-                    <div class="hidden flex-col gap-2" id="spacedRepButtonsOutside">
-                        <div class="text-xs text-slate-300 text-center mt-2 font-semibold">Marcar dificultad:</div>
-                        <div class="flex gap-2">
-                            <button onclick="cycleDifficultyOnly(1)" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-lg transition text-sm">
-                                😰 Difícil
-                            </button>
-                            <button onclick="cycleDifficultyOnly(2)" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-3 rounded-lg transition text-sm">
-                                😐 Normal
-                            </button>
-                            <button onclick="cycleDifficultyOnly(3)" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 rounded-lg transition text-sm">
-                                😊 Fácil
-                            </button>
-                        </div>
-                        <div class="text-xs text-slate-300 text-center mt-4 font-semibold">Resultado:</div>
-                        <div class="flex gap-2">
-                            <button onclick="markCardIncorrect()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
-                                ✗ Fallida
-                            </button>
-                            <button onclick="markCardCorrect()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
-                                ✓ Correcta
-                            </button>
-                        </div>
-                    </div>
-                </div>
             `;
             
-            // Mostrar botones correctos según modo
-            if (state.spacedRepetitionEnabled) {
-                cardContainer.querySelector('#normalButtonsOutside').classList.add('hidden');
-                cardContainer.querySelector('#spacedRepButtonsOutside').classList.remove('hidden');
-                cardContainer.querySelector('#spacedRepButtonsOutside').classList.add('flex');
-            } else {
-                cardContainer.querySelector('#normalButtonsOutside').classList.remove('hidden');
-                cardContainer.querySelector('#spacedRepButtonsOutside').classList.add('hidden');
+            // Actualizar los botones fijos (fuera de la tarjeta)
+            const answerButtonsContainer = document.getElementById('answerButtonsContainer');
+            if (answerButtonsContainer) {
+                const normalButtons = answerButtonsContainer.querySelector('#normalButtonsFixed');
+                const spacedRepButtons = answerButtonsContainer.querySelector('#spacedRepButtonsFixed');
+                
+                if (state.spacedRepetitionEnabled) {
+                    normalButtons.classList.add('hidden');
+                    spacedRepButtons.classList.remove('hidden');
+                    spacedRepButtons.classList.add('flex');
+                } else {
+                    normalButtons.classList.remove('hidden');
+                    spacedRepButtons.classList.add('hidden');
+                }
             }
 
             // Update progress bar
