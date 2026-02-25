@@ -1095,45 +1095,47 @@
                         <div class="card-flip-back bg-gradient-to-br from-amber-900/20 to-slate-800 border-4 border-amber-400/20">
                             <div class="text-center">
                                 <p class="text-sm font-semibold text-amber-300 mb-4 uppercase tracking-wider">Respuesta</p>
-                                <p class="text-2xl sm:text-3xl font-bold leading-relaxed">${escapeHtml(card.answer)}</p>
-                                <p class="text-xs text-slate-400 mt-6">Haz clic para ver la pregunta</p>
-                                
-                                <!-- Botones dentro de la tarjeta -->
-                                <div class="mt-8 pt-6 border-t border-slate-600" id="cardButtons">
-                                    <div class="flex gap-2 flex-col sm:flex-row" id="normalButtonsInCard">
-                                        <button onclick="markCardIncorrect()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
-                                            ✗ Fallida
-                                        </button>
-                                        <button onclick="markCardCorrect()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
-                                            ✓ Correcta
-                                        </button>
-                                    </div>
-                                    
-                                    <div class="hidden flex-col gap-2" id="spacedRepButtonsInCard">
-                                        <div class="text-xs text-slate-400 text-center mt-2">Marcar dificultad:</div>
-                                        <div class="flex gap-2">
-                                            <button onclick="cycleDifficultyOnly(1)" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded-lg transition text-xs">
-                                                😰 Difícil
-                                            </button>
-                                            <button onclick="cycleDifficultyOnly(2)" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-1 px-3 rounded-lg transition text-xs">
-                                                😐 Normal
-                                            </button>
-                                            <button onclick="cycleDifficultyOnly(3)" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded-lg transition text-xs">
-                                                😊 Fácil
-                                            </button>
-                                        </div>
-                                        <div class="text-xs text-slate-400 text-center mt-2">Resultado:</div>
-                                        <div class="flex gap-2">
-                                            <button onclick="markCardIncorrect()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
-                                                ✗ Fallida
-                                            </button>
-                                            <button onclick="markCardCorrect()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
-                                                ✓ Correcta
-                                            </button>
-                                        </div>
-                                    </div>
+                                <div style="max-height: 70vh; overflow-y: auto; padding: 0 1.5rem;">
+                                    <p class="text-2xl sm:text-3xl font-bold leading-relaxed">${escapeHtml(card.answer)}</p>
                                 </div>
+                                <p class="text-xs text-slate-400 mt-6">Haz clic para ver la pregunta</p>
                             </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Botones FUERA de la tarjeta -->
+                <div class="mt-6 pt-4 border-t border-slate-600" id="cardButtons">
+                    <div class="flex gap-2 flex-col sm:flex-row" id="normalButtonsOutside">
+                        <button onclick="markCardIncorrect()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
+                            ✗ Fallida
+                        </button>
+                        <button onclick="markCardCorrect()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
+                            ✓ Correcta
+                        </button>
+                    </div>
+                    
+                    <div class="hidden flex-col gap-2" id="spacedRepButtonsOutside">
+                        <div class="text-xs text-slate-300 text-center mt-2 font-semibold">Marcar dificultad:</div>
+                        <div class="flex gap-2">
+                            <button onclick="cycleDifficultyOnly(1)" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-lg transition text-sm">
+                                😰 Difícil
+                            </button>
+                            <button onclick="cycleDifficultyOnly(2)" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-3 rounded-lg transition text-sm">
+                                😐 Normal
+                            </button>
+                            <button onclick="cycleDifficultyOnly(3)" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 rounded-lg transition text-sm">
+                                😊 Fácil
+                            </button>
+                        </div>
+                        <div class="text-xs text-slate-300 text-center mt-4 font-semibold">Resultado:</div>
+                        <div class="flex gap-2">
+                            <button onclick="markCardIncorrect()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
+                                ✗ Fallida
+                            </button>
+                            <button onclick="markCardCorrect()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
+                                ✓ Correcta
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1141,12 +1143,12 @@
             
             // Mostrar botones correctos según modo
             if (state.spacedRepetitionEnabled) {
-                cardContainer.querySelector('#normalButtonsInCard').classList.add('hidden');
-                cardContainer.querySelector('#spacedRepButtonsInCard').classList.remove('hidden');
-                cardContainer.querySelector('#spacedRepButtonsInCard').classList.add('flex');
+                cardContainer.querySelector('#normalButtonsOutside').classList.add('hidden');
+                cardContainer.querySelector('#spacedRepButtonsOutside').classList.remove('hidden');
+                cardContainer.querySelector('#spacedRepButtonsOutside').classList.add('flex');
             } else {
-                cardContainer.querySelector('#normalButtonsInCard').classList.remove('hidden');
-                cardContainer.querySelector('#spacedRepButtonsInCard').classList.add('hidden');
+                cardContainer.querySelector('#normalButtonsOutside').classList.remove('hidden');
+                cardContainer.querySelector('#spacedRepButtonsOutside').classList.add('hidden');
             }
 
             // Update progress bar
