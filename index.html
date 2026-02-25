@@ -1276,6 +1276,42 @@
             reader.readAsText(file);
         }
 
+        function loadDefaultCSV() {
+            // Cargar el CSV por defecto si no hay tarjetas
+            if (state.cards.length > 0) return;
+
+            fetch('preguntas-opo.csv')
+                .then(response => {
+                    if (!response.ok) throw new Error('No se pudo cargar el CSV por defecto');
+                    return response.text();
+                })
+                .then(text => {
+                    const lines = text.split('\n').filter(line => line.trim());
+                    let importedCount = 0;
+
+                    for (let i = 0; i < lines.length; i++) {
+                        const parts = lines[i].split(';').map(p => p.trim());
+                        if (parts.length >= 3) {
+                            const [topic, question, answer] = parts;
+                            if (topic && question && answer) {
+                                addCard(question, answer, topic);
+                                importedCount++;
+                            }
+                        }
+                    }
+
+                    if (importedCount > 0) {
+                        showNotification(`📥 Cargadas ${importedCount} preguntas OPO por defecto`);
+                        updateCardDisplay();
+                        updateTopicsFilter();
+                    }
+                })
+                .catch(() => {
+                    // No mostrar error si el archivo no existe
+                    console.log('preguntas-opo.csv no encontrado');
+                });
+        }
+
         function showNotification(message) {
             const notification = document.createElement('div');
             notification.className = 'fixed bottom-6 right-6 bg-emerald-500 text-white px-6 py-3 rounded-lg shadow-lg animate-fadeIn';
@@ -1873,6 +1909,7 @@
         loadFromLocalStorage();
         applyTheme(); // Aplicar tema guardado
         applySpacedRepToggleStyle(); // Aplicar estilo de Spaced Repetition
+        loadDefaultCSV(); // Cargar CSV por defecto si no hay tarjetas
         
         // Mostrar notificación de nuevo día si aplica
         if (state.newDayReset) {
