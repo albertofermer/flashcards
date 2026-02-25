@@ -2124,9 +2124,36 @@
         updateCardDisplay();
         updateCardCount();
 
-        // Service Worker Registration
+        // Service Worker Registration with Update Detection
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(() => {
+            navigator.serviceWorker.register('sw.js').then(registration => {
+                // Checkear actualizaciones cada 30 segundos
+                setInterval(() => {
+                    registration.update();
+                }, 30000);
+
+                // Cuando hay una actualización disponible
+                registration.addEventListener('updatefound', () => {
+                    const newWorker = registration.installing;
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            // Nueva versión disponible
+                            const notification = document.createElement('div');
+                            notification.className = 'fixed bottom-6 left-6 bg-blue-600 text-white px-6 py-4 rounded-lg shadow-lg z-50 max-w-sm';
+                            notification.innerHTML = `
+                                <div class="mb-3">
+                                    <p class="font-bold">🔄 Actualización disponible</p>
+                                    <p class="text-sm text-blue-100 mt-1">Se encontró una nueva versión de la aplicación</p>
+                                </div>
+                                <button onclick="location.reload()" class="w-full bg-white text-blue-600 font-bold py-2 px-4 rounded hover:bg-blue-50 text-sm">
+                                    Recargar Ahora
+                                </button>
+                            `;
+                            document.body.appendChild(notification);
+                        }
+                    });
+                });
+            }).catch(() => {
                 // Service worker registration failed, app still works offline
             });
         }
