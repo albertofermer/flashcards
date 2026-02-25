@@ -9,6 +9,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="FlashCards">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230f172a' width='192' height='192'/><rect fill='%23fbbf24' x='30' y='30' width='132' height='132' rx='25'/></svg>">
     
     <title>FlashCards</title>
     
@@ -249,7 +251,7 @@
         @media (max-width: 640px) {
             .card-flip {
                 min-height: 280px;
-                max-height: 60vh;
+                max-height: 55vh;
             }
 
             .card-flip-inner {
@@ -260,7 +262,37 @@
                 padding: 1.5rem;
                 font-size: 1.125rem;
             }
-        }
+
+            /* Mejorar botones en móviles */
+            button {
+                min-height: 48px;
+                font-size: 1rem;
+            }
+
+            /* Mejorar inputs */
+            input, textarea, select {
+                min-height: 48px !important;
+                font-size: 16px !important;
+            }
+
+            /* Mejorar espaciado en móviles */
+            main {
+                padding: 1rem 0.5rem !important;
+            }
+
+            h2 {
+                font-size: 1.25rem;
+            }
+
+            .text-2xl {
+                font-size: 1.5rem !important;
+            }
+
+            /* Modal mejorado para móviles */
+            .modal-content {
+                max-width: 95vw !important;
+                max-height: 85vh !important;
+            }
         }
     </style>
 </head>
