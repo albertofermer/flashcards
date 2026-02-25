@@ -1239,9 +1239,10 @@
             }
             
             // En modo SR, guardar la dificultad seleccionada si existe
+            // IMPORTANTE: No actualizar cardLastReview para que la tarjeta siga disponible en el mismo día
             if (state.spacedRepetitionEnabled && state.selectedDifficulty) {
                 state.cardDifficulty[card.id] = state.selectedDifficulty;
-                state.cardLastReview[card.id] = Date.now();
+                // NO actualizar cardLastReview aquí - mantener la tarjeta en el pool del mismo día
                 state.selectedDifficulty = null; // Resetear para próxima tarjeta
             }
             
