@@ -859,6 +859,30 @@
         const progressBar = document.getElementById('progressBar');
         const progressFill = document.getElementById('progressFill');
 
+        // ==================== PERFORMANCE OPTIMIZATION ====================
+        // Debounce function para búsquedas
+        function debounce(func, delay) {
+            let timeoutId;
+            return function(...args) {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => func.apply(this, args), delay);
+            };
+        }
+
+        // Cache para búsquedas frecuentes
+        const cache = {
+            activeCards: null,
+            uniqueTopics: null,
+            lastActiveCardsFilter: null,
+            lastActiveCardsTopic: null
+        };
+
+        // Invalidar cache cuando es necesario
+        function invalidateCache() {
+            cache.activeCards = null;
+            cache.uniqueTopics = null;
+        }
+
         // ==================== STORAGE MANAGEMENT ====================
         function saveToLocalStorage() {
             const today = new Date().toISOString().split('T')[0]; // Formato: YYYY-MM-DD
@@ -913,11 +937,24 @@
         }
 
         function getUniqueTopics() {
+            // Usar cache si no cambió el número de tarjetas
+            if (cache.uniqueTopics !== null && cache.lastActiveCardsTopic === state.cards.length) {
+                return cache.uniqueTopics;
+            }
+            
             const topics = new Set(state.cards.map(card => card.topic || 'Sin tema'));
-            return Array.from(topics).sort();
+            cache.uniqueTopics = Array.from(topics).sort();
+            cache.lastActiveCardsTopic = state.cards.length;
+            return cache.uniqueTopics;
         }
 
         function getActiveCards() {
+            // Usar cache si los datos no cambiaron
+            const cacheKey = state.spacedRepetitionEnabled ? 'sr' : 'normal';
+            if (cache.activeCards !== null && cache.lastActiveCardsFilter === cacheKey) {
+                return cache.activeCards;
+            }
+
             // Retorna las tarjetas que no han sido respondidas correctamente
             let cards = state.cards.filter(card => state.answeredCards[card.id] !== 'correct');
             
@@ -925,10 +962,13 @@
             if (state.spacedRepetitionEnabled) {
                 // Incluir también tarjetas marcadas como correctas pero que necesitan repaso
                 const allCards = state.cards.filter(card => shouldShowCard(card));
-                return allCards;
+                cache.activeCards = allCards;
+            } else {
+                cache.activeCards = cards;
             }
             
-            return cards;
+            cache.lastActiveCardsFilter = cacheKey;
+            return cache.activeCards;
         }
 
         function getCardsByTopic(topic, cards = null) {
@@ -1057,50 +1097,56 @@
                                 <p class="text-sm font-semibold text-amber-300 mb-4 uppercase tracking-wider">Respuesta</p>
                                 <p class="text-2xl sm:text-3xl font-bold leading-relaxed">${escapeHtml(card.answer)}</p>
                                 <p class="text-xs text-slate-400 mt-6">Haz clic para ver la pregunta</p>
+                                
+                                <!-- Botones dentro de la tarjeta -->
+                                <div class="mt-8 pt-6 border-t border-slate-600" id="cardButtons">
+                                    <div class="flex gap-2 flex-col sm:flex-row" id="normalButtonsInCard">
+                                        <button onclick="markCardIncorrect()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
+                                            ✗ Fallida
+                                        </button>
+                                        <button onclick="markCardCorrect()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
+                                            ✓ Correcta
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="hidden flex-col gap-2" id="spacedRepButtonsInCard">
+                                        <div class="text-xs text-slate-400 text-center mt-2">Marcar dificultad:</div>
+                                        <div class="flex gap-2">
+                                            <button onclick="cycleDifficultyOnly(1)" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded-lg transition text-xs">
+                                                😰 Difícil
+                                            </button>
+                                            <button onclick="cycleDifficultyOnly(2)" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-1 px-3 rounded-lg transition text-xs">
+                                                😐 Normal
+                                            </button>
+                                            <button onclick="cycleDifficultyOnly(3)" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded-lg transition text-xs">
+                                                😊 Fácil
+                                            </button>
+                                        </div>
+                                        <div class="text-xs text-slate-400 text-center mt-2">Resultado:</div>
+                                        <div class="flex gap-2">
+                                            <button onclick="markCardIncorrect()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
+                                                ✗ Fallida
+                                            </button>
+                                            <button onclick="markCardCorrect()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
+                                                ✓ Correcta
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                <div class="flex gap-3 mt-6" id="normalButtons">
-                    <button onclick="markCardIncorrect()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition">
-                        ✗ Fallida
-                    </button>
-                    <button onclick="markCardCorrect()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition">
-                        ✓ Correcta
-                    </button>
-                </div>
-                
-                <div class="hidden gap-3 mt-6 flex-col" id="spacedRepButtons">
-                    <div class="text-sm text-slate-400 text-center">Marcar dificultad:</div>
-                    <div class="flex gap-3">
-                        <button onclick="cycleDifficultyOnly(1)" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
-                            😰 Difícil
-                        </button>
-                        <button onclick="cycleDifficultyOnly(2)" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
-                            😐 Normal
-                        </button>
-                        <button onclick="cycleDifficultyOnly(3)" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
-                            😊 Fácil
-                        </button>
-                    </div>
-                    <div class="text-sm text-slate-400 text-center mt-2">Resultado:</div>
-                    <div class="flex gap-3">
-                        <button onclick="markCardIncorrect()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition">
-                            ✗ Fallida
-                        </button>
-                        <button onclick="markCardCorrect()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition">
-                            ✓ Correcta
-                        </button>
                     </div>
                 </div>
             `;
             
             // Mostrar botones correctos según modo
             if (state.spacedRepetitionEnabled) {
-                cardContainer.querySelector('#normalButtons').classList.add('hidden');
-                cardContainer.querySelector('#spacedRepButtons').classList.remove('hidden');
-                cardContainer.querySelector('#spacedRepButtons').classList.add('flex');
+                cardContainer.querySelector('#normalButtonsInCard').classList.add('hidden');
+                cardContainer.querySelector('#spacedRepButtonsInCard').classList.remove('hidden');
+                cardContainer.querySelector('#spacedRepButtonsInCard').classList.add('flex');
+            } else {
+                cardContainer.querySelector('#normalButtonsInCard').classList.remove('hidden');
+                cardContainer.querySelector('#spacedRepButtonsInCard').classList.add('hidden');
             }
 
             // Update progress bar
@@ -1133,6 +1179,7 @@
             }
             
             saveToLocalStorage();
+            invalidateCache();
             updateCardCount();
             
             // Verificar si quedan tarjetas
@@ -1167,6 +1214,7 @@
             }
             
             saveToLocalStorage();
+            invalidateCache();
             showNotification('📝 Pregunta marcada para repetir');
             
             // Verificar si quedan tarjetas después de marcar como incorrecta
@@ -1321,6 +1369,7 @@
             });
 
             saveToLocalStorage();
+            invalidateCache();
             updateTopicFilters();
             updateCardDisplay();
             updateCardCount();
@@ -1343,6 +1392,7 @@
                 state.currentIndex = 0;
                 state.isFlipped = false;
                 saveToLocalStorage();
+                invalidateCache();
                 updateTopicFilters();
                 updateCardDisplay();
                 updateCardCount();
@@ -1809,6 +1859,7 @@
             // NO marcar como correcta aquí - esperar a que presione ✓ o ✗
             
             saveToLocalStorage();
+            invalidateCache();
             
             // Mensajes según dificultad
             const messages = {
@@ -1840,6 +1891,7 @@
             }
             
             saveToLocalStorage();
+            invalidateCache();
             updateCardCount();
             
             // Mensajes según dificultad
@@ -2035,10 +2087,15 @@
             }
         });
 
-        // Search
+        // Search with debounce (300ms delay)
+        const debouncedSearch = debounce((value) => handleSearch(value), 300);
         document.getElementById('searchInput')?.addEventListener('input', (e) => {
-            handleSearch(e.target.value);
+            debouncedSearch(e.target.value);
         });
+
+        // Search in list modal with debounce
+        const debouncedListSearch = debounce(() => updateListContent(), 300);
+        document.getElementById('listSearchInput')?.addEventListener('input', debouncedListSearch);
 
         // Close modal when clicking outside
         document.getElementById('listModal')?.addEventListener('click', (e) => {
@@ -2065,11 +2122,6 @@
 
         // Modal topic filter
         document.getElementById('modalTopicFilter')?.addEventListener('change', () => {
-            updateListContent();
-        });
-
-        // Search in list modal
-        document.getElementById('listSearchInput')?.addEventListener('input', () => {
             updateListContent();
         });
 
