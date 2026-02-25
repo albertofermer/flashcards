@@ -308,29 +308,35 @@
                         </h1>
                         <p class="text-slate-400 text-sm mt-1">Estudia inteligentemente</p>
                     </div>
-                    <div class="flex gap-2">
-                        <button id="themeToggle" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-4 rounded-lg text-sm transition" title="Cambiar tema">
+                    <div class="flex gap-2 flex-wrap justify-end">
+                        <button id="themeToggle" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-3 rounded-lg text-sm transition sm:px-4" title="Cambiar tema">
                             🌙
                         </button>
-                        <button id="spacedRepToggle" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-4 rounded-lg text-sm transition" title="Repetición Espaciada">
-                            🧠 SR
+                        <button id="spacedRepToggle" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-3 rounded-lg text-sm transition sm:px-4 whitespace-nowrap" title="Repetición Espaciada">
+                            <span class="hidden sm:inline">🧠 SR</span>
+                            <span class="sm:hidden">🧠</span>
                         </button>
-                        <button id="statsBtn" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-4 rounded-lg text-sm transition">
-                            📊 Stats
+                        <button id="statsBtn" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-3 rounded-lg text-sm transition sm:px-4 whitespace-nowrap">
+                            <span class="hidden sm:inline">📊 Stats</span>
+                            <span class="sm:hidden">📊</span>
                         </button>
-                        <button id="studyModeBtn" class="bg-emerald-700 hover:bg-emerald-600 text-slate-100 font-semibold py-2 px-4 rounded-lg text-sm transition">
-                            🎯 Estudiar
+                        <button id="studyModeBtn" class="bg-emerald-700 hover:bg-emerald-600 text-slate-100 font-semibold py-2 px-3 rounded-lg text-sm transition sm:px-4 whitespace-nowrap">
+                            <span class="hidden sm:inline">🎯 Estudiar</span>
+                            <span class="sm:hidden">🎯</span>
                         </button>
-                        <button id="viewListBtn" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-4 rounded-lg text-sm transition">
-                            📋 Listado
+                        <button id="viewListBtn" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-3 rounded-lg text-sm transition sm:px-4 whitespace-nowrap">
+                            <span class="hidden sm:inline">📋 Listado</span>
+                            <span class="sm:hidden">📋</span>
                         </button>
-                        <button id="importBtn" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-4 rounded-lg text-sm transition" title="Importar CSV">
-                            📥 Importar
+                        <button id="importBtn" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-3 rounded-lg text-sm transition sm:px-4 whitespace-nowrap" title="Importar CSV">
+                            <span class="hidden sm:inline">📥 Importar</span>
+                            <span class="sm:hidden">📥</span>
                         </button>
-                        <button id="exportBtn" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-4 rounded-lg text-sm transition">
-                            💾 Exportar
+                        <button id="exportBtn" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-3 rounded-lg text-sm transition sm:px-4 whitespace-nowrap">
+                            <span class="hidden sm:inline">💾 Exportar</span>
+                            <span class="sm:hidden">💾</span>
                         </button>
-                        <button id="configBtn" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-4 rounded-lg text-sm transition" title="Configuración">
+                        <button id="configBtn" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-3 rounded-lg text-sm transition sm:px-4" title="Configuración">
                             ⚙️
                         </button>
                         <input type="file" id="csvImport" accept=".csv,.txt" class="hidden" />
