@@ -438,12 +438,15 @@
                     </div>
 
                     <!-- Filter and Sort Controls -->
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-sm font-medium text-slate-300 mb-2">Tema</label>
-                            <select id="topicFilter" class="input-field w-full px-3 py-2 rounded-lg text-slate-100 text-sm">
-                                <option value="all">Todos los temas</option>
-                            </select>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">Temas</label>
+                            <div id="topicFilterCheckboxes" class="input-field w-full px-3 py-2 rounded-lg text-slate-100 text-sm max-h-36 overflow-y-auto space-y-2">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" id="topicFilterAll" class="rounded border-slate-500 bg-slate-700 text-amber-400 focus:ring-amber-400" checked>
+                                    <span>Todos los temas</span>
+                                </label>
+                            </div>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-300 mb-2">Orden</label>
@@ -860,6 +863,7 @@
             isFlipped: false,
             currentView: 'study', // study, list, import
             filterTopic: 'all',
+            selectedTopics: [], // [] = todos los temas
             sortMode: 'random', // random, ordered
             answeredCards: {}, // {cardId: 'correct'|'incorrect'}
             newDayReset: false, // Bandera para notificar reset automático
@@ -1016,6 +1020,16 @@
             return baseCards.filter(card => (card.topic || 'Sin tema') === topic);
         }
 
+        function getCardsBySelectedTopics(cards = null) {
+            const baseCards = cards || getActiveCards();
+            if (!Array.isArray(state.selectedTopics) || state.selectedTopics.length === 0) {
+                return baseCards;
+            }
+
+            const selectedTopicSet = new Set(state.selectedTopics);
+            return baseCards.filter(card => selectedTopicSet.has(card.topic || 'Sin tema'));
+        }
+
         // ==================== CARD DISPLAY ====================
         function updateCardDisplay() {
             // Limpiar timer anterior si existe
@@ -1035,7 +1049,7 @@
                 );
             }
             
-            const displayCards = state.filterTopic === 'all' ? activeCards : getCardsByTopic(state.filterTopic, activeCards);
+            const displayCards = getCardsBySelectedTopics(activeCards);
 
             if (displayCards.length === 0) {
                 // Mensaje diferente para modo Spaced Repetition
@@ -1187,7 +1201,7 @@
         // ==================== CARD EVALUATION ====================
         function markCardCorrect() {
             const activeCards = getActiveCards();
-            const displayCards = state.filterTopic === 'all' ? activeCards : getCardsByTopic(state.filterTopic);
+            const displayCards = getCardsBySelectedTopics(activeCards);
             const card = displayCards[state.currentIndex];
             
             state.answeredCards[card.id] = 'correct';
@@ -1210,16 +1224,17 @@
             updateCardCount();
             
             // Verificar si quedan tarjetas
-            const remainingCards = state.filterTopic === 'all' ? getActiveCards() : getCardsByTopic(state.filterTopic);
+            const remainingCards = getCardsBySelectedTopics();
             
             if (remainingCards.length === 0) {
                 // No hay más tarjetas en este tema/filtro
                 state.currentIndex = 0;
                 state.isFlipped = false;
-                if (state.filterTopic === 'all' && getActiveCards().length === 0) {
+                if (state.selectedTopics.length === 0 && getActiveCards().length === 0) {
                     showNotification('🎉 ¡Excelente! ¡Todas las preguntas respondidas correctamente!');
                 } else {
-                    showNotification('✅ ¡Felicidades! Has terminado este tema');
+                    const filterLabel = state.selectedTopics.length > 1 ? 'estos temas seleccionados' : 'este tema';
+                    showNotification(`✅ ¡Felicidades! Has terminado ${filterLabel}`);
                 }
                 updateCardDisplay();
             } else {
@@ -1229,7 +1244,7 @@
 
         function markCardIncorrect() {
             const activeCards = getActiveCards();
-            const displayCards = state.filterTopic === 'all' ? activeCards : getCardsByTopic(state.filterTopic);
+            const displayCards = getCardsBySelectedTopics(activeCards);
             const card = displayCards[state.currentIndex];
             
             // En modo SR, NO marcar como incorrect definitivamente - la tarjeta debe seguir disponible
@@ -1257,7 +1272,7 @@
             showNotification('📝 Pregunta marcada para repetir');
             
             // Verificar si quedan tarjetas después de marcar como incorrecta
-            const remainingCards = state.filterTopic === 'all' ? getActiveCards() : getCardsByTopic(state.filterTopic);
+            const remainingCards = getCardsBySelectedTopics();
             
             if (remainingCards.length === 0) {
                 // No hay más tarjetas en este tema/filtro
@@ -1367,7 +1382,7 @@
         // ==================== CARD NAVIGATION ====================
         function nextCard() {
             const activeCards = getActiveCards();
-            const displayCards = state.filterTopic === 'all' ? activeCards : getCardsByTopic(state.filterTopic);
+            const displayCards = getCardsBySelectedTopics(activeCards);
             
             if (displayCards.length === 0) return;
             
@@ -1383,7 +1398,7 @@
 
         function prevCard() {
             const activeCards = getActiveCards();
-            const displayCards = state.filterTopic === 'all' ? activeCards : getCardsByTopic(state.filterTopic);
+            const displayCards = getCardsBySelectedTopics(activeCards);
             
             if (displayCards.length === 0) return;
             state.currentIndex = (state.currentIndex - 1 + displayCards.length) % displayCards.length;
@@ -1890,7 +1905,7 @@
 
         function cycleDifficultyOnly(level) {
             const activeCards = getActiveCards();
-            const displayCards = state.filterTopic === 'all' ? activeCards : getCardsByTopic(state.filterTopic);
+            const displayCards = getCardsBySelectedTopics(activeCards);
             const card = displayCards[state.currentIndex];
             
             // Guardar nivel de dificultad TEMPORAL (no confundir con cardDifficulty guardada)
@@ -1909,7 +1924,7 @@
 
         function markCardDifficulty(level) {
             const activeCards = getActiveCards();
-            const displayCards = state.filterTopic === 'all' ? activeCards : getCardsByTopic(state.filterTopic);
+            const displayCards = getCardsBySelectedTopics(activeCards);
             const card = displayCards[state.currentIndex];
             
             // Guardar nivel de dificultad (1=difícil, 2=normal, 3=fácil)
@@ -1936,7 +1951,7 @@
                 3: '😊 ¡Dominada! La verás en una semana'
             };
             
-            const remainingCards = state.filterTopic === 'all' ? getActiveCards() : getCardsByTopic(state.filterTopic);
+            const remainingCards = getCardsBySelectedTopics();
             
             if (remainingCards.length === 0) {
                 state.currentIndex = 0;
@@ -2139,9 +2154,27 @@
             }
         });
 
-        // Topic filter
-        document.getElementById('topicFilter')?.addEventListener('change', (e) => {
-            state.filterTopic = e.target.value;
+        // Topic filter (multi-seleccion)
+        document.getElementById('topicFilterCheckboxes')?.addEventListener('change', (e) => {
+            const allCheckbox = document.getElementById('topicFilterAll');
+            const topicCheckboxes = Array.from(document.querySelectorAll('.topic-filter-item'));
+            const target = e.target;
+
+            if (!allCheckbox || !(target instanceof HTMLInputElement)) return;
+
+            if (target.id === 'topicFilterAll' && allCheckbox.checked) {
+                topicCheckboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                state.selectedTopics = [];
+            } else {
+                state.selectedTopics = topicCheckboxes
+                    .filter(checkbox => checkbox.checked)
+                    .map(checkbox => checkbox.value);
+
+                allCheckbox.checked = state.selectedTopics.length === 0;
+            }
+
             state.currentIndex = 0;
             state.isFlipped = false;
             updateCardDisplay();
@@ -2162,20 +2195,31 @@
 
         // Reset Theme Button
         document.getElementById('resetThemeBtn')?.addEventListener('click', () => {
-            const selectedTopic = document.getElementById('topicFilter')?.value;
-            
-            if (!selectedTopic) {
-                alert('Selecciona un tema primero');
-                return;
-            }
+            const selectedTopics = Array.isArray(state.selectedTopics) ? state.selectedTopics : [];
 
-            if (selectedTopic === 'all') {
+            if (selectedTopics.length === 0) {
                 if (confirm('⚠️ ¿Estás seguro de que quieres resetear TODOS los temas? Las preguntas acertadas volverán a aparecer.')) {
                     resetTheme('all');
                 }
+            } else if (selectedTopics.length === 1) {
+                const topic = selectedTopics[0];
+                if (confirm(`⚠️ ¿Estás seguro de que quieres resetear el tema "${topic}"? Las preguntas acertadas volverán a aparecer.`)) {
+                    resetTheme(topic);
+                }
             } else {
-                if (confirm(`⚠️ ¿Estás seguro de que quieres resetear el tema "${selectedTopic}"? Las preguntas acertadas volverán a aparecer.`)) {
-                    resetTheme(selectedTopic);
+                if (confirm(`⚠️ ¿Estás seguro de que quieres resetear ${selectedTopics.length} temas seleccionados? Las preguntas acertadas volverán a aparecer.`)) {
+                    const selectedSet = new Set(selectedTopics);
+                    state.cards.forEach(card => {
+                        if (selectedSet.has(card.topic || 'Sin tema')) {
+                            delete state.answeredCards[card.id];
+                        }
+                    });
+                    state.currentIndex = 0;
+                    state.isFlipped = false;
+                    saveToLocalStorage();
+                    updateCardCount();
+                    updateCardDisplay();
+                    showNotification(`🔄 ${selectedTopics.length} temas reseteados`);
                 }
             }
         });
@@ -2225,14 +2269,31 @@
         // Update topic filters
         function updateTopicFilters() {
             const topics = getUniqueTopics();
-            const topicSelect = document.getElementById('topicFilter');
+            const topicCheckboxContainer = document.getElementById('topicFilterCheckboxes');
             const modalTopicSelect = document.getElementById('modalTopicFilter');
             
-            if (topicSelect) {
-                const currentValue = topicSelect.value || 'all';
-                topicSelect.innerHTML = '<option value="all">Todos los temas</option>' + 
-                    topics.map(topic => `<option value="${topic}">${topic}</option>`).join('');
-                topicSelect.value = currentValue;
+            if (topicCheckboxContainer) {
+                const validSelectedTopics = (state.selectedTopics || []).filter(topic => topics.includes(topic));
+                state.selectedTopics = validSelectedTopics;
+
+                const allChecked = state.selectedTopics.length === 0;
+                const topicCheckboxesHtml = topics.map(topic => {
+                    const checkedAttr = state.selectedTopics.includes(topic) ? 'checked' : '';
+                    return `
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" class="topic-filter-item rounded border-slate-500 bg-slate-700 text-amber-400 focus:ring-amber-400" value="${escapeHtml(topic)}" ${checkedAttr}>
+                            <span>${escapeHtml(topic)}</span>
+                        </label>
+                    `;
+                }).join('');
+
+                topicCheckboxContainer.innerHTML = `
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="topicFilterAll" class="rounded border-slate-500 bg-slate-700 text-amber-400 focus:ring-amber-400" ${allChecked ? 'checked' : ''}>
+                        <span>Todos los temas</span>
+                    </label>
+                    ${topicCheckboxesHtml || '<p class="text-xs text-slate-500">No hay temas disponibles</p>'}
+                `;
             }
             
             if (modalTopicSelect) {
