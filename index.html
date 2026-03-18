@@ -332,6 +332,10 @@
                             <span class="hidden sm:inline">📥 Importar</span>
                             <span class="sm:hidden">📥</span>
                         </button>
+                        <button id="templateBtn" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-3 rounded-lg text-sm transition sm:px-4 whitespace-nowrap" title="Descargar plantilla CSV">
+                            <span class="hidden sm:inline">📄 Plantilla</span>
+                            <span class="sm:hidden">📄</span>
+                        </button>
                         <button id="exportBtn" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-3 rounded-lg text-sm transition sm:px-4 whitespace-nowrap">
                             <span class="hidden sm:inline">💾 Exportar</span>
                             <span class="sm:hidden">💾</span>
@@ -1457,6 +1461,264 @@
         }
 
         // ==================== IMPORT CSV ====================
+        function normalizeCSVToken(value) {
+            return (value || '')
+                .toString()
+                .trim()
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '');
+        }
+
+        function splitCSVLine(line, delimiter = ';') {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+
+                if (char === '"') {
+                    if (inQuotes && line[i + 1] === '"') {
+                        current += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                    continue;
+                }
+
+                if (char === delimiter && !inQuotes) {
+                    result.push(current);
+                    current = '';
+                    continue;
+                }
+
+                current += char;
+            }
+
+            result.push(current);
+            return result;
+        }
+
+        function detectCSVDelimiter(sampleLine) {
+            const sanitized = (sampleLine || '').replace(/^\uFEFF/, '');
+            const semicolonParts = splitCSVLine(sanitized, ';');
+            const commaParts = splitCSVLine(sanitized, ',');
+
+            const semicolonHeader = semicolonParts.map(part => normalizeCSVToken(part));
+            const commaHeader = commaParts.map(part => normalizeCSVToken(part));
+
+            const hasKnownColumns = (parts) =>
+                parts.includes('tema') && parts.includes('pregunta') && parts.includes('respuesta');
+
+            if (hasKnownColumns(semicolonHeader) && !hasKnownColumns(commaHeader)) return ';';
+            if (hasKnownColumns(commaHeader) && !hasKnownColumns(semicolonHeader)) return ',';
+
+            if (semicolonParts.length >= 3 && commaParts.length < 3) return ';';
+            if (commaParts.length >= 3 && semicolonParts.length < 3) return ',';
+
+            // Por compatibilidad con la app (que exporta con ';'), priorizamos ';' en caso ambiguo.
+            return ';';
+        }
+
+        function parseDifficultyFromCSV(value) {
+            if (value === undefined || value === null) return null;
+
+            const raw = value.toString().trim();
+            if (!raw) return null;
+
+            const normalized = normalizeCSVToken(raw);
+            if (normalized === '1' || normalized === 'dificil' || normalized === 'difficult' || normalized === 'hard' || raw.includes('😰')) return 1;
+            if (normalized === '2' || normalized === 'normal' || normalized === 'medium' || raw.includes('😐')) return 2;
+            if (normalized === '3' || normalized === 'facil' || normalized === 'easy' || raw.includes('😊')) return 3;
+            return null;
+        }
+
+        function parseStatusFromCSV(value) {
+            if (value === undefined || value === null) return null;
+            const normalized = normalizeCSVToken(value);
+            if (!normalized) return null;
+
+            if (['correct', 'correcta', 'acierto', 'acertada', 'ok', 'bien'].includes(normalized)) return 'correct';
+            if (['incorrect', 'incorrecta', 'fallida', 'fallo', 'error', 'mal'].includes(normalized)) return 'incorrect';
+            return null;
+        }
+
+        function parseLastReviewFromCSV(value) {
+            if (value === undefined || value === null) return null;
+            const raw = value.toString().trim();
+            if (!raw) return null;
+
+            // Timestamp en ms
+            if (/^\d{10,}$/.test(raw)) {
+                const timestamp = Number(raw);
+                return Number.isFinite(timestamp) ? timestamp : null;
+            }
+
+            // Fecha ISO u otros formatos compatibles con Date.parse
+            const parsed = Date.parse(raw);
+            return Number.isNaN(parsed) ? null : parsed;
+        }
+
+        function getDifficultyLabel(level) {
+            return { 1: 'Difícil', 2: 'Normal', 3: 'Fácil' }[level] || '';
+        }
+
+        function getStatusLabel(status) {
+            return { correct: 'Correcta', incorrect: 'Fallida' }[status] || 'Pendiente';
+        }
+
+        function escapeCSVValue(value, delimiter = ';') {
+            const stringValue = value === undefined || value === null ? '' : String(value);
+            const escaped = stringValue.replace(/"/g, '""');
+            const needsQuotes = escaped.includes(delimiter) || escaped.includes('"') || escaped.includes('\n') || escaped.includes('\r');
+            return needsQuotes ? `"${escaped}"` : escaped;
+        }
+
+        function importCardsFromCSVText(text) {
+            const lines = text.split(/\r?\n/).filter(line => line.trim());
+            if (lines.length === 0) {
+                return {
+                    importedCount: 0,
+                    skippedCount: 0,
+                    difficultyCount: 0,
+                    statusCount: 0,
+                    lastReviewCount: 0
+                };
+            }
+
+            const delimiter = detectCSVDelimiter(lines[0]);
+            let importedCount = 0;
+            let skippedCount = 0;
+            let difficultyCount = 0;
+            let statusCount = 0;
+            let lastReviewCount = 0;
+            let startLineIndex = 0;
+
+            const headerParts = splitCSVLine(lines[0], delimiter).map(p => p.replace(/^\uFEFF/, '').trim());
+            const normalizedHeaderParts = headerParts.map(part => normalizeCSVToken(part));
+            const hasHeader =
+                normalizedHeaderParts.includes('tema') &&
+                normalizedHeaderParts.includes('pregunta') &&
+                normalizedHeaderParts.includes('respuesta');
+
+            const columnIndexes = {
+                topic: 0,
+                question: 1,
+                answer: 2,
+                difficulty: 3,
+                difficultyValue: -1,
+                status: -1,
+                lastReviewIso: -1,
+                lastReviewTs: -1
+            };
+
+            if (hasHeader) {
+                startLineIndex = 1;
+
+                const findHeaderIndex = (aliases) =>
+                    normalizedHeaderParts.findIndex(part => aliases.includes(part));
+
+                const topicIndex = findHeaderIndex(['tema', 'topic']);
+                const questionIndex = findHeaderIndex(['pregunta', 'question']);
+                const answerIndex = findHeaderIndex(['respuesta', 'answer']);
+                if (topicIndex !== -1) columnIndexes.topic = topicIndex;
+                if (questionIndex !== -1) columnIndexes.question = questionIndex;
+                if (answerIndex !== -1) columnIndexes.answer = answerIndex;
+
+                const difficultyIndex = findHeaderIndex(['dificultad', 'difficulty']);
+                if (difficultyIndex !== -1) columnIndexes.difficulty = difficultyIndex;
+
+                const difficultyValueIndex = findHeaderIndex(['dificultadvalor', 'difficultyvalue', 'difficultylevel', 'dificultadnivel']);
+                if (difficultyValueIndex !== -1) columnIndexes.difficultyValue = difficultyValueIndex;
+
+                const statusIndex = findHeaderIndex(['estado', 'status', 'resultado', 'result']);
+                if (statusIndex !== -1) columnIndexes.status = statusIndex;
+
+                const lastReviewIsoIndex = findHeaderIndex(['ultimarevision', 'ultimarevisioniso', 'lastreview', 'lastreviewiso', 'reviewdate']);
+                if (lastReviewIsoIndex !== -1) columnIndexes.lastReviewIso = lastReviewIsoIndex;
+
+                const lastReviewTsIndex = findHeaderIndex(['ultimarevisionts', 'lastreviewts', 'lastreviewtimestamp', 'timestamp']);
+                if (lastReviewTsIndex !== -1) columnIndexes.lastReviewTs = lastReviewTsIndex;
+            }
+
+            for (let i = startLineIndex; i < lines.length; i++) {
+                const parts = splitCSVLine(lines[i], delimiter).map(p => p.trim());
+                if (parts.length < 3) {
+                    skippedCount++;
+                    continue;
+                }
+
+                const topic = parts[columnIndexes.topic] || 'Sin tema';
+                const question = parts[columnIndexes.question] || '';
+                const answer = parts[columnIndexes.answer] || '';
+
+                if (!question || !answer) {
+                    skippedCount++;
+                    continue;
+                }
+
+                const cardId = 'card_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                state.cards.push({
+                    id: cardId,
+                    question,
+                    answer,
+                    topic: topic || 'Sin tema'
+                });
+
+                let parsedDifficulty = null;
+                if (columnIndexes.difficultyValue !== -1) {
+                    parsedDifficulty = parseDifficultyFromCSV(parts[columnIndexes.difficultyValue]);
+                }
+                if (!parsedDifficulty && columnIndexes.difficulty !== -1) {
+                    parsedDifficulty = parseDifficultyFromCSV(parts[columnIndexes.difficulty]);
+                }
+                if (parsedDifficulty) {
+                    state.cardDifficulty[cardId] = parsedDifficulty;
+                    difficultyCount++;
+                }
+
+                if (columnIndexes.status !== -1) {
+                    const parsedStatus = parseStatusFromCSV(parts[columnIndexes.status]);
+                    if (parsedStatus) {
+                        state.answeredCards[cardId] = parsedStatus;
+                        statusCount++;
+                    }
+                }
+
+                const reviewRaw =
+                    columnIndexes.lastReviewTs !== -1
+                        ? parts[columnIndexes.lastReviewTs]
+                        : columnIndexes.lastReviewIso !== -1
+                            ? parts[columnIndexes.lastReviewIso]
+                            : null;
+                const parsedLastReview = parseLastReviewFromCSV(reviewRaw);
+                if (parsedLastReview) {
+                    state.cardLastReview[cardId] = parsedLastReview;
+                    lastReviewCount++;
+                }
+
+                importedCount++;
+            }
+
+            if (importedCount > 0) {
+                saveToLocalStorage();
+                invalidateCache();
+                updateTopicFilters();
+                updateCardDisplay();
+                updateCardCount();
+            }
+
+            return {
+                importedCount,
+                skippedCount,
+                difficultyCount,
+                statusCount,
+                lastReviewCount
+            };
+        }
+
         function handleCSVImport(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -1464,21 +1726,14 @@
             const reader = new FileReader();
             reader.onload = (e) => {
                 const text = e.target.result;
-                const lines = text.split('\n').filter(line => line.trim());
-                let importedCount = 0;
+                const result = importCardsFromCSVText(text);
 
-                for (let i = 0; i < lines.length; i++) {
-                    const parts = lines[i].split(';').map(p => p.trim());
-                    if (parts.length >= 3) {
-                        const [topic, question, answer] = parts;
-                        if (topic && question && answer) {
-                            addCard(question, answer, topic);
-                            importedCount++;
-                        }
-                    }
-                }
+                showNotification(
+                    `📥 Importadas ${result.importedCount} (dif: ${result.difficultyCount}, estado: ${result.statusCount}, revisión: ${result.lastReviewCount}, omitidas: ${result.skippedCount})`
+                );
 
-                showNotification(`📥 Se importaron ${importedCount} tarjetas correctamente`);
+                // Permite reimportar el mismo archivo sin recargar la página
+                event.target.value = '';
             };
             reader.readAsText(file);
         }
@@ -1493,24 +1748,10 @@
                     return response.text();
                 })
                 .then(text => {
-                    const lines = text.split('\n').filter(line => line.trim());
-                    let importedCount = 0;
+                    const result = importCardsFromCSVText(text);
 
-                    for (let i = 0; i < lines.length; i++) {
-                        const parts = lines[i].split(';').map(p => p.trim());
-                        if (parts.length >= 3) {
-                            const [topic, question, answer] = parts;
-                            if (topic && question && answer) {
-                                addCard(question, answer, topic);
-                                importedCount++;
-                            }
-                        }
-                    }
-
-                    if (importedCount > 0) {
-                        showNotification(`📥 Cargadas ${importedCount} preguntas OPO por defecto`);
-                        updateCardDisplay();
-                        updateTopicsFilter();
+                    if (result.importedCount > 0) {
+                        showNotification(`📥 Cargadas ${result.importedCount} preguntas OPO por defecto`);
                     }
                 })
                 .catch(() => {
@@ -1732,6 +1973,27 @@
         }
 
         // ==================== EXPORT CSV ====================
+        function downloadCSVTemplate() {
+            const templateLines = [
+                'Tema;Pregunta;Respuesta;Dificultad;DificultadValor;Estado;UltimaRevisionISO;UltimaRevisionTS',
+                '# Dificultad admite: Difícil/Normal/Fácil o 1/2/3',
+                '# Estado admite: Correcta/Fallida/Pendiente',
+                '# UltimaRevisionISO ejemplo: 2026-03-18T10:30:00.000Z',
+                '# UltimaRevisionTS ejemplo: 1742293800000'
+            ];
+
+            const csvContent = '\uFEFF' + templateLines.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `flashcards_plantilla_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+            URL.revokeObjectURL(url);
+
+            showNotification('📄 Plantilla CSV descargada');
+        }
+
         function exportToCSV() {
             if (state.cards.length === 0) {
                 alert('No hay tarjetas para exportar');
@@ -1739,12 +2001,27 @@
             }
 
             // Crear contenido CSV
-            const csvContent = 'Tema;Pregunta;Respuesta\n' + 
+            const csvContent = '\uFEFFTema;Pregunta;Respuesta;Dificultad;DificultadValor;Estado;UltimaRevisionISO;UltimaRevisionTS\n' + 
                 state.cards.map(card => {
-                    const topic = (card.topic || 'Sin tema').replace(/;/g, ',');
-                    const question = card.question.replace(/;/g, ',').replace(/\n/g, ' ');
-                    const answer = card.answer.replace(/;/g, ',').replace(/\n/g, ' ');
-                    return `${topic};${question};${answer}`;
+                    const topic = (card.topic || 'Sin tema').replace(/\r?\n/g, ' ');
+                    const question = (card.question || '').replace(/\r?\n/g, ' ');
+                    const answer = (card.answer || '').replace(/\r?\n/g, ' ');
+                    const difficultyValue = state.cardDifficulty[card.id] || '';
+                    const difficulty = getDifficultyLabel(difficultyValue);
+                    const status = getStatusLabel(state.answeredCards[card.id]);
+                    const lastReviewTs = state.cardLastReview[card.id] || '';
+                    const lastReviewIso = lastReviewTs ? new Date(lastReviewTs).toISOString() : '';
+
+                    return [
+                        topic,
+                        question,
+                        answer,
+                        difficulty,
+                        difficultyValue,
+                        status,
+                        lastReviewIso,
+                        lastReviewTs
+                    ].map(value => escapeCSVValue(value, ';')).join(';');
                 }).join('\n');
 
             // Crear blob y descargar
@@ -2128,6 +2405,7 @@
 
         // Export CSV
         document.getElementById('exportBtn')?.addEventListener('click', exportToCSV);
+        document.getElementById('templateBtn')?.addEventListener('click', downloadCSVTemplate);
 
         // Settings Modal
         document.getElementById('configBtn')?.addEventListener('click', openSettingsModal);
