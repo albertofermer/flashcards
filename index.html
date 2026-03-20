@@ -542,10 +542,20 @@
                 <span class="modal-close" onclick="closeListModal()">&times;</span>
                 <h2 class="text-2xl font-bold text-slate-100 mb-6">📋 Listado de Tarjetas</h2>
                 
-                <div class="mb-4">
-                    <select id="modalTopicFilter" class="input-field w-full px-4 py-2 rounded-lg text-slate-100">
-                        <option value="all">Todos los temas</option>
-                    </select>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                    <div>
+                        <select id="modalTopicFilter" class="input-field w-full px-4 py-2 rounded-lg text-slate-100">
+                            <option value="all">Todos los temas</option>
+                        </select>
+                    </div>
+                    <div>
+                        <select id="modalStatusFilter" class="input-field w-full px-4 py-2 rounded-lg text-slate-100">
+                            <option value="all">Todos los estados</option>
+                            <option value="pending">Pendientes</option>
+                            <option value="correct">Correctas</option>
+                            <option value="incorrect">Fallidas</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="mb-4">
@@ -870,6 +880,7 @@
             selectedTopics: [], // [] = todos los temas
             sortMode: 'random', // random, ordered
             answeredCards: {}, // {cardId: 'correct'|'incorrect'}
+            cardStatus: JSON.parse(localStorage.getItem('cardStatus') || '{}'), // {cardId: 'pending'|'correct'|'incorrect'}
             newDayReset: false, // Bandera para notificar reset automático
             searchQuery: '', // Búsqueda actual
             editingCardId: null, // ID de la tarjeta que se está editando
@@ -936,9 +947,11 @@
             const dataToSave = {
                 cards: state.cards,
                 answeredCards: state.answeredCards,
+                cardStatus: state.cardStatus,
                 lastDate: today
             };
             localStorage.setItem('flashcards', JSON.stringify(dataToSave));
+            localStorage.setItem('cardStatus', JSON.stringify(state.cardStatus));
             
             // Guardar datos de Spaced Repetition
             localStorage.setItem('cardDifficulty', JSON.stringify(state.cardDifficulty));
@@ -952,6 +965,14 @@
                 const data = JSON.parse(stored);
                 state.cards = data.cards || [];
                 state.answeredCards = data.answeredCards || {};
+                state.cardStatus = data.cardStatus || JSON.parse(localStorage.getItem('cardStatus') || '{}');
+
+                // Migracion: si falta estado explicito, derivarlo desde answeredCards.
+                state.cards.forEach(card => {
+                    if (!state.cardStatus[card.id]) {
+                        state.cardStatus[card.id] = state.answeredCards[card.id] || 'pending';
+                    }
+                });
                 
                 // Verificar si es un nuevo día
                 const today = new Date().toISOString().split('T')[0];
@@ -1209,6 +1230,7 @@
             const card = displayCards[state.currentIndex];
             
             state.answeredCards[card.id] = 'correct';
+            state.cardStatus[card.id] = 'correct';
             
             // En modo SR, guardar la dificultad seleccionada si existe
             if (state.spacedRepetitionEnabled && state.selectedDifficulty) {
@@ -1256,6 +1278,7 @@
             if (!state.spacedRepetitionEnabled) {
                 state.answeredCards[card.id] = 'incorrect';
             }
+            state.cardStatus[card.id] = 'incorrect';
             
             // En modo SR, guardar la dificultad seleccionada si existe
             // IMPORTANTE: No actualizar cardLastReview para que la tarjeta siga disponible en el mismo día
@@ -1292,6 +1315,9 @@
             if (topic === 'all') {
                 // Resetear todos los temas
                 state.answeredCards = {};
+                state.cards.forEach(card => {
+                    state.cardStatus[card.id] = 'pending';
+                });
                 state.currentIndex = 0;
                 state.isFlipped = false;
                 saveToLocalStorage();
@@ -1303,6 +1329,7 @@
                 state.cards.forEach(card => {
                     if ((card.topic || 'Sin tema') === topic) {
                         delete state.answeredCards[card.id];
+                        state.cardStatus[card.id] = 'pending';
                     }
                 });
                 state.currentIndex = 0;
@@ -1329,7 +1356,15 @@
 
         function updateListContent() {
             const selectedTopic = document.getElementById('modalTopicFilter')?.value || 'all';
+            const selectedStatus = document.getElementById('modalStatusFilter')?.value || 'all';
             let cards = selectedTopic === 'all' ? state.cards : state.cards.filter(c => (c.topic || 'Sin tema') === selectedTopic);
+
+            if (selectedStatus !== 'all') {
+                cards = cards.filter(c => {
+                    const status = state.cardStatus[c.id] || state.answeredCards[c.id] || 'pending';
+                    return status === selectedStatus;
+                });
+            }
             
             // Aplicar filtro de búsqueda
             const searchInput = document.getElementById('listSearchInput')?.value.toLowerCase() || '';
@@ -1351,6 +1386,17 @@
                 const difficulty = state.cardDifficulty[card.id] || 0;
                 const difficultyEmoji = { 0: '?', 1: '😰', 2: '😐', 3: '😊' }[difficulty];
                 const difficultyLabel = { 0: 'Sin dificultad', 1: 'Difícil', 2: 'Normal', 3: 'Fácil' }[difficulty];
+                const status = state.cardStatus[card.id] || state.answeredCards[card.id] || 'pending';
+                const statusLabel = getStatusLabel(status);
+                const statusColor = {
+                    pending: 'text-slate-400',
+                    correct: 'text-green-400',
+                    incorrect: 'text-red-400'
+                }[status] || 'text-slate-400';
+                const lastReviewTs = state.cardLastReview[card.id] || null;
+                const lastReviewLabel = lastReviewTs
+                    ? new Date(lastReviewTs).toLocaleString('es-ES')
+                    : 'Sin revisión';
                 
                 return `
                 <div class="glass-effect rounded-lg p-4 border border-slate-600">
@@ -1359,12 +1405,14 @@
                             <p class="text-xs font-semibold text-emerald-300 mb-2">${card.topic || 'Sin tema'}</p>
                             <p class="font-semibold text-slate-100 mb-2">P: ${escapeHtml(card.question)}</p>
                             <p class="text-sm text-slate-400">R: ${escapeHtml(card.answer)}</p>
-                            ${state.spacedRepetitionEnabled ? `<p class="text-xs text-slate-500 mt-2">SR: ${difficultyLabel}</p>` : ''}
+                            <p class="text-xs text-slate-500 mt-2">SR: ${difficultyLabel}</p>
+                            <p class="text-xs mt-1 ${statusColor}">Estado: ${statusLabel}</p>
+                            <p class="text-xs text-slate-500 mt-1">Última revisión: ${lastReviewLabel}</p>
                         </div>
                         <div class="flex flex-col items-center gap-2">
                             <button onclick="openEditModal('${card.id}')" class="text-blue-400 hover:text-blue-300 text-lg" title="Editar tarjeta">✏️</button>
                             ${state.spacedRepetitionEnabled ? `<button onclick="cycleDifficulty('${card.id}')" class="text-xl cursor-pointer hover:scale-110" title="${difficultyLabel}">${difficultyEmoji}</button>` : ''}
-                            ${state.answeredCards[card.id] === 'correct' ? '<span class="text-green-400 text-lg">✓</span>' : '<span class="text-slate-500">○</span>'}
+                            ${status === 'correct' ? '<span class="text-green-400 text-lg">✓</span>' : status === 'incorrect' ? '<span class="text-red-400 text-lg">✗</span>' : '<span class="text-slate-500">○</span>'}
                         </div>
                     </div>
                 </div>
@@ -1427,6 +1475,7 @@
                 answer: answer,
                 topic: (topic && topic.trim()) || 'Sin tema'
             });
+            state.cardStatus[cardId] = 'pending';
 
             saveToLocalStorage();
             invalidateCache();
@@ -1449,6 +1498,7 @@
             if (confirm('⚠️ ¿Estás seguro de que quieres borrar TODAS las tarjetas? Esta acción no se puede deshacer.')) {
                 state.cards = [];
                 state.answeredCards = {};
+                state.cardStatus = {};
                 state.currentIndex = 0;
                 state.isFlipped = false;
                 saveToLocalStorage();
@@ -1542,6 +1592,7 @@
 
             if (['correct', 'correcta', 'acierto', 'acertada', 'ok', 'bien'].includes(normalized)) return 'correct';
             if (['incorrect', 'incorrecta', 'fallida', 'fallo', 'error', 'mal'].includes(normalized)) return 'incorrect';
+            if (['pending', 'pendiente', 'pend', 'porhacer', 'sinrevisar'].includes(normalized)) return 'pending';
             return null;
         }
 
@@ -1566,7 +1617,7 @@
         }
 
         function getStatusLabel(status) {
-            return { correct: 'Correcta', incorrect: 'Fallida' }[status] || 'Pendiente';
+            return { pending: 'Pendiente', correct: 'Correcta', incorrect: 'Fallida' }[status] || 'Pendiente';
         }
 
         function escapeCSVValue(value, delimiter = ';') {
@@ -1666,6 +1717,7 @@
                     answer,
                     topic: topic || 'Sin tema'
                 });
+                state.cardStatus[cardId] = 'pending';
 
                 let parsedDifficulty = null;
                 if (columnIndexes.difficultyValue !== -1) {
@@ -1682,7 +1734,10 @@
                 if (columnIndexes.status !== -1) {
                     const parsedStatus = parseStatusFromCSV(parts[columnIndexes.status]);
                     if (parsedStatus) {
-                        state.answeredCards[cardId] = parsedStatus;
+                        state.cardStatus[cardId] = parsedStatus;
+                        if (parsedStatus === 'correct' || parsedStatus === 'incorrect') {
+                            state.answeredCards[cardId] = parsedStatus;
+                        }
                         statusCount++;
                     }
                 }
@@ -1697,19 +1752,7 @@
                         : null;
                 const parsedLastReview = parsedLastReviewTs || parsedLastReviewIso;
                 if (parsedLastReview) {
-                    // Al importar, forzamos disponibilidad en el mismo día para SR.
-                    // Si el CSV trae una última revisión muy reciente, la movemos al pasado
-                    // al menos el intervalo correspondiente para que la tarjeta aparezca hoy.
-                    const effectiveDifficulty = parsedDifficulty || 1;
-                    const intervalDaysByDifficulty = {
-                        1: state.srIntervals.difficult || 1,
-                        2: state.srIntervals.normal || 3,
-                        3: state.srIntervals.easy || 7
-                    };
-                    const intervalDays = intervalDaysByDifficulty[effectiveDifficulty] || 1;
-                    const dueNowTimestamp = Date.now() - (intervalDays * 24 * 60 * 60 * 1000);
-
-                    state.cardLastReview[cardId] = Math.min(parsedLastReview, dueNowTimestamp);
+                    state.cardLastReview[cardId] = parsedLastReview;
                     lastReviewCount++;
                 }
 
@@ -2022,7 +2065,7 @@
                     const answer = (card.answer || '').replace(/\r?\n/g, ' ');
                     const difficultyValue = state.cardDifficulty[card.id] || '';
                     const difficulty = getDifficultyLabel(difficultyValue);
-                    const status = getStatusLabel(state.answeredCards[card.id]);
+                    const status = getStatusLabel(state.cardStatus[card.id] || state.answeredCards[card.id] || 'pending');
                     const lastReviewTs = state.cardLastReview[card.id] || '';
                     const lastReviewIso = lastReviewTs ? new Date(lastReviewTs).toISOString() : '';
 
@@ -2224,6 +2267,7 @@
             
             // Marcar como correcta en el sistema normal
             state.answeredCards[card.id] = 'correct';
+            state.cardStatus[card.id] = 'correct';
             
             // Contar en modo estudio si está activo
             if (state.studyMode) {
@@ -2482,6 +2526,11 @@
 
         // Modal topic filter
         document.getElementById('modalTopicFilter')?.addEventListener('change', () => {
+            updateListContent();
+        });
+
+        // Modal status filter
+        document.getElementById('modalStatusFilter')?.addEventListener('change', () => {
             updateListContent();
         });
 
