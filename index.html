@@ -1687,15 +1687,29 @@
                     }
                 }
 
-                const reviewRaw =
+                const parsedLastReviewTs =
                     columnIndexes.lastReviewTs !== -1
-                        ? parts[columnIndexes.lastReviewTs]
-                        : columnIndexes.lastReviewIso !== -1
-                            ? parts[columnIndexes.lastReviewIso]
-                            : null;
-                const parsedLastReview = parseLastReviewFromCSV(reviewRaw);
+                        ? parseLastReviewFromCSV(parts[columnIndexes.lastReviewTs])
+                        : null;
+                const parsedLastReviewIso =
+                    columnIndexes.lastReviewIso !== -1
+                        ? parseLastReviewFromCSV(parts[columnIndexes.lastReviewIso])
+                        : null;
+                const parsedLastReview = parsedLastReviewTs || parsedLastReviewIso;
                 if (parsedLastReview) {
-                    state.cardLastReview[cardId] = parsedLastReview;
+                    // Al importar, forzamos disponibilidad en el mismo día para SR.
+                    // Si el CSV trae una última revisión muy reciente, la movemos al pasado
+                    // al menos el intervalo correspondiente para que la tarjeta aparezca hoy.
+                    const effectiveDifficulty = parsedDifficulty || 1;
+                    const intervalDaysByDifficulty = {
+                        1: state.srIntervals.difficult || 1,
+                        2: state.srIntervals.normal || 3,
+                        3: state.srIntervals.easy || 7
+                    };
+                    const intervalDays = intervalDaysByDifficulty[effectiveDifficulty] || 1;
+                    const dueNowTimestamp = Date.now() - (intervalDays * 24 * 60 * 60 * 1000);
+
+                    state.cardLastReview[cardId] = Math.min(parsedLastReview, dueNowTimestamp);
                     lastReviewCount++;
                 }
 
