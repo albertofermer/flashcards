@@ -320,6 +320,10 @@
                             <span class="hidden sm:inline">📊 Stats</span>
                             <span class="sm:hidden">📊</span>
                         </button>
+                        <button id="changelogBtn" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 px-3 rounded-lg text-sm transition sm:px-4 whitespace-nowrap">
+                            <span class="hidden sm:inline">📝 Changelog</span>
+                            <span class="sm:hidden">📝</span>
+                        </button>
                         <button id="studyModeBtn" class="bg-emerald-700 hover:bg-emerald-600 text-slate-100 font-semibold py-2 px-3 rounded-lg text-sm transition sm:px-4 whitespace-nowrap">
                             <span class="hidden sm:inline">🎯 Estudiar</span>
                             <span class="sm:hidden">🎯</span>
@@ -860,6 +864,19 @@
             </div>
         </div>
 
+        <!-- Changelog Modal -->
+        <div id="changelogModal" class="modal">
+            <div class="modal-content max-w-2xl max-h-90vh overflow-y-auto">
+                <span class="modal-close" onclick="closeChangelogModal()">&times;</span>
+                <h2 class="text-2xl font-bold text-slate-100 mb-3">📝 Changelog</h2>
+                <p class="text-sm text-slate-400 mb-6">Ultimas actualizaciones publicadas de la aplicación.</p>
+                <div id="changelogContent" class="space-y-4"></div>
+                <button onclick="closeChangelogModal()" class="mt-6 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-6 rounded-lg w-full">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+
         <!-- Footer -->
         <footer class="border-t border-slate-border glass-effect mt-12">
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-slate-400 text-sm">
@@ -1091,12 +1108,7 @@
                     // Calcular próxima tarjeta disponible usando intervalos personalizados
                     let nextAvailable = null;
                     state.cards.forEach(card => {
-                        const difficulty = state.cardDifficulty[card.id] || 1;
-                        const lastReview = state.cardLastReview[card.id] || 0;
-                        const difficultyMap = { 1: 'difficult', 2: 'normal', 3: 'easy' };
-                        const intervalKey = difficultyMap[difficulty];
-                        const interval = state.srIntervals[intervalKey] || 1;
-                        const nextReviewDate = lastReview + (interval * 24 * 60 * 60 * 1000);
+                        const nextReviewDate = getCardNextReviewTimestamp(card.id);
                         
                         if (!nextAvailable || nextReviewDate < nextAvailable) {
                             nextAvailable = nextReviewDate;
@@ -1490,6 +1502,10 @@
                 </div>
             `;
             }).join('');
+
+            if (state.spacedRepetitionEnabled) {
+                updateListCountdowns();
+            }
         }
 
         function updateModalTopicFilter() {
@@ -1692,17 +1708,29 @@
             return { pending: 'Pendiente', correct: 'Correcta', incorrect: 'Fallida' }[status] || 'Pendiente';
         }
 
-        function escapeCSVValue(value, delimiter = ';') {
+        function getSRIntervalKey(difficulty) {
+            return { 1: 'difficult', 2: 'normal', 3: 'easy' }[difficulty] || 'difficult';
+        }
+
+        function getSRIntervalDays(difficulty) {
+            return state.srIntervals[getSRIntervalKey(difficulty)] || 1;
+        }
+
+        function getCardNextReviewTimestamp(cardId) {
+            const difficulty = state.cardDifficulty[cardId] || 1;
+            const lastReview = state.cardLastReview[cardId] || 0;
+            return lastReview + (getSRIntervalDays(difficulty) * 24 * 60 * 60 * 1000);
+        }
 
         function formatMsCountdown(ms) {
             if (ms <= 0) return null;
-            const days    = Math.floor(ms / (1000 * 60 * 60 * 24));
-            const hours   = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
             const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((ms % (1000 * 60)) / 1000);
-            if (days > 0)  return `${days}d ${hours}h ${String(minutes).padStart(2,'0')}m ${String(seconds).padStart(2,'0')}s`;
-            if (hours > 0) return `${hours}h ${String(minutes).padStart(2,'0')}m ${String(seconds).padStart(2,'0')}s`;
-            return `${String(minutes).padStart(2,'0')}m ${String(seconds).padStart(2,'0')}s`;
+            if (days > 0) return `${days}d ${hours}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+            if (hours > 0) return `${hours}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+            return `${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
         }
 
         function getSRNextReviewMs(cardId) {
@@ -1710,12 +1738,11 @@
             if (!difficulty) return 0;
             const lastReview = state.cardLastReview[cardId] || 0;
             if (!lastReview) return 0;
-            const difficultyMap = { 1: 'difficult', 2: 'normal', 3: 'easy' };
-            const interval = state.srIntervals[difficultyMap[difficulty]] || 1;
-            const nextTs = lastReview + interval * 24 * 60 * 60 * 1000;
+            const nextTs = getCardNextReviewTimestamp(cardId);
             return Math.max(0, nextTs - Date.now());
         }
 
+        function escapeCSVValue(value, delimiter = ';') {
             const stringValue = value === undefined || value === null ? '' : String(value);
             const escaped = stringValue.replace(/"/g, '""');
             const needsQuotes = escaped.includes(delimiter) || escaped.includes('"') || escaped.includes('\n') || escaped.includes('\r');
@@ -1953,6 +1980,64 @@
         function closeStatsModal() {
             const modal = document.getElementById('statsModal');
             modal.classList.remove('active');
+        }
+
+        function openChangelogModal() {
+            const modal = document.getElementById('changelogModal');
+            modal.classList.add('active');
+            updateChangelogModal();
+        }
+
+        function closeChangelogModal() {
+            const modal = document.getElementById('changelogModal');
+            modal.classList.remove('active');
+        }
+
+        function updateChangelogModal() {
+            const changelogContent = document.getElementById('changelogContent');
+            if (!changelogContent) return;
+
+            const entries = [
+                {
+                    version: 'v2.6.0',
+                    date: '2026-03-20',
+                    items: [
+                        'Contador SR en el listado por tarjeta (dias, horas, minutos y segundos).',
+                        'La dificultad SR se conserva al continuar si la tarjeta ya tenia una asignada.',
+                        'Validacion SR: si no hay dificultad previa, obliga a seleccionar una antes de confirmar.'
+                    ]
+                },
+                {
+                    version: 'v2.5.0',
+                    date: '2026-03-20',
+                    items: [
+                        'Estado explicito por tarjeta: pendiente, correcta o fallida.',
+                        'Persistencia de ultima revision SR y estado en almacenamiento local.',
+                        'Filtro por estado en el listado y visualizacion ampliada por tarjeta.'
+                    ]
+                },
+                {
+                    version: 'v2.4.0',
+                    date: '2026-03-20',
+                    items: [
+                        'Exportacion/importacion CSV enriquecida con dificultad, estado y ultima revision.',
+                        'Plantilla CSV descargable y parser robusto para delimitadores y campos con comillas.',
+                        'Compatibilidad mejorada con Excel (BOM y escape de valores).'
+                    ]
+                }
+            ];
+
+            changelogContent.innerHTML = entries.map(entry => `
+                <div class="glass-effect rounded-lg p-4 border border-slate-600">
+                    <div class="flex items-center justify-between gap-3 mb-2">
+                        <p class="font-bold text-slate-100">${entry.version}</p>
+                        <p class="text-xs text-slate-400">${entry.date}</p>
+                    </div>
+                    <ul class="text-sm text-slate-300 space-y-1">
+                        ${entry.items.map(item => `<li>• ${item}</li>`).join('')}
+                    </ul>
+                </div>
+            `).join('');
         }
 
         function updateStats() {
@@ -2395,17 +2480,8 @@
 
         function shouldShowCard(card) {
             if (!state.spacedRepetitionEnabled) return true;
-            
-            const difficulty = state.cardDifficulty[card.id] || 1; // Por defecto difícil
-            const lastReview = state.cardLastReview[card.id] || 0;
-            const daysSinceReview = (Date.now() - lastReview) / (1000 * 60 * 60 * 24);
-            
-            // Usar intervalos personalizados (mapear 1=difficult, 2=normal, 3=easy)
-            const difficultyMap = { 1: 'difficult', 2: 'normal', 3: 'easy' };
-            const intervalKey = difficultyMap[difficulty];
-            const interval = state.srIntervals[intervalKey] || 1;
-            
-            return daysSinceReview >= interval;
+
+            return Date.now() >= getCardNextReviewTimestamp(card.id);
         }
 
         function cycleDifficulty(cardId) {
@@ -2527,10 +2603,16 @@
 
         // Statistics
         document.getElementById('statsBtn')?.addEventListener('click', openStatsModal);
+        document.getElementById('changelogBtn')?.addEventListener('click', openChangelogModal);
         document.getElementById('closeStatsModal')?.addEventListener('click', closeStatsModal);
         document.getElementById('statsModal')?.addEventListener('click', (e) => {
             if (e.target === document.getElementById('statsModal')) {
                 closeStatsModal();
+            }
+        });
+        document.getElementById('changelogModal')?.addEventListener('click', (e) => {
+            if (e.target === document.getElementById('changelogModal')) {
+                closeChangelogModal();
             }
         });
 
@@ -2676,6 +2758,7 @@
                 }
             }
             if (e.key === 'Escape') closeListModal();
+            if (e.key === 'Escape') closeChangelogModal();
         });
 
         // CSV Import
