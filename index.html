@@ -714,7 +714,7 @@
                                 </div>
                                 <div>
                                     <label class="text-xs text-slate-400">Fácil</label>
-                                    <input type="number" id="editIntervalEasy" value="7" min="1" max="30" class="input-field w-full px-2 py-1 rounded text-slate-100 text-sm">
+                                    <input type="number" id="editIntervalEasy" value="5" min="1" max="30" class="input-field w-full px-2 py-1 rounded text-slate-100 text-sm">
                                 </div>
                             </div>
                             <p class="text-xs text-slate-500 mt-2">Estos intervalos se aplicarán globalmente a todas las tarjetas</p>
@@ -832,7 +832,7 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-slate-300 mb-1">😊 Fácil (días)</label>
-                                <input type="number" id="configIntervalEasy" value="7" min="1" max="30" class="input-field w-full px-3 py-2 rounded text-slate-100">
+                                <input type="number" id="configIntervalEasy" value="5" min="1" max="30" class="input-field w-full px-3 py-2 rounded text-slate-100">
                                 <p class="text-xs text-slate-500 mt-1">Tarjetas que ya dominas</p>
                             </div>
                         </div>
@@ -899,9 +899,10 @@
             cardLastReview: JSON.parse(localStorage.getItem('cardLastReview') || '{}'), // {cardId: timestamp}
             selectedDifficulty: null, // Dificultad TEMPORAL seleccionada, se confirma con ✓ o ✗
             // Intervalos personalizados para SR (en días)
-            srIntervals: JSON.parse(localStorage.getItem('srIntervals') || '{"difficult": 1, "normal": 3, "easy": 7}'),
+            srIntervals: JSON.parse(localStorage.getItem('srIntervals') || '{"difficult": 1, "normal": 3, "easy": 5}'),
             nextReplayTimestamp: null,
-            nextReplayTimer: null
+            nextReplayTimer: null,
+            listModalTimer: null
         };
 
         // ==================== DOM ELEMENTS ====================
@@ -1388,16 +1389,40 @@
         }
 
         // ==================== LIST MODAL ====================
+        function updateListCountdowns() {
+            state.cards.forEach(card => {
+                const el = document.getElementById('srCountdown_' + card.id);
+                if (!el) return;
+                const ms = getSRNextReviewMs(card.id);
+                if (ms <= 0) {
+                    el.textContent = '✅ Disponible ahora';
+                    el.className = 'text-xs mt-1 text-green-400';
+                } else {
+                    el.textContent = '⏱ Próxima en: ' + formatMsCountdown(ms);
+                    el.className = 'text-xs mt-1 text-amber-400';
+                }
+            });
+        }
+
         function openListModal() {
             const modal = document.getElementById('listModal');
             modal.classList.add('active');
             updateListContent();
             updateModalTopicFilter();
+            if (state.spacedRepetitionEnabled) {
+                updateListCountdowns();
+                if (state.listModalTimer) clearInterval(state.listModalTimer);
+                state.listModalTimer = setInterval(updateListCountdowns, 1000);
+            }
         }
 
         function closeListModal() {
             const modal = document.getElementById('listModal');
             modal.classList.remove('active');
+            if (state.listModalTimer) {
+                clearInterval(state.listModalTimer);
+                state.listModalTimer = null;
+            }
         }
 
         function updateListContent() {
@@ -1454,6 +1479,7 @@
                             <p class="text-xs text-slate-500 mt-2">SR: ${difficultyLabel}</p>
                             <p class="text-xs mt-1 ${statusColor}">Estado: ${statusLabel}</p>
                             <p class="text-xs text-slate-500 mt-1">Última revisión: ${lastReviewLabel}</p>
+                            ${state.spacedRepetitionEnabled ? `<p class="text-xs mt-1" id="srCountdown_${card.id}"></p>` : ''}
                         </div>
                         <div class="flex flex-col items-center gap-2">
                             <button onclick="openEditModal('${card.id}')" class="text-blue-400 hover:text-blue-300 text-lg" title="Editar tarjeta">✏️</button>
@@ -1667,6 +1693,29 @@
         }
 
         function escapeCSVValue(value, delimiter = ';') {
+
+        function formatMsCountdown(ms) {
+            if (ms <= 0) return null;
+            const days    = Math.floor(ms / (1000 * 60 * 60 * 24));
+            const hours   = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((ms % (1000 * 60)) / 1000);
+            if (days > 0)  return `${days}d ${hours}h ${String(minutes).padStart(2,'0')}m ${String(seconds).padStart(2,'0')}s`;
+            if (hours > 0) return `${hours}h ${String(minutes).padStart(2,'0')}m ${String(seconds).padStart(2,'0')}s`;
+            return `${String(minutes).padStart(2,'0')}m ${String(seconds).padStart(2,'0')}s`;
+        }
+
+        function getSRNextReviewMs(cardId) {
+            const difficulty = state.cardDifficulty[cardId];
+            if (!difficulty) return 0;
+            const lastReview = state.cardLastReview[cardId] || 0;
+            if (!lastReview) return 0;
+            const difficultyMap = { 1: 'difficult', 2: 'normal', 3: 'easy' };
+            const interval = state.srIntervals[difficultyMap[difficulty]] || 1;
+            const nextTs = lastReview + interval * 24 * 60 * 60 * 1000;
+            return Math.max(0, nextTs - Date.now());
+        }
+
             const stringValue = value === undefined || value === null ? '' : String(value);
             const escaped = stringValue.replace(/"/g, '""');
             const needsQuotes = escaped.includes(delimiter) || escaped.includes('"') || escaped.includes('\n') || escaped.includes('\r');
@@ -2003,7 +2052,7 @@
             document.getElementById('editDifficulty').value = difficulty;
             document.getElementById('editIntervalDifficult').value = state.srIntervals.difficult || 1;
             document.getElementById('editIntervalNormal').value = state.srIntervals.normal || 3;
-            document.getElementById('editIntervalEasy').value = state.srIntervals.easy || 7;
+            document.getElementById('editIntervalEasy').value = state.srIntervals.easy || 5;
 
             const modal = document.getElementById('editModal');
             modal.classList.add('active');
@@ -2437,7 +2486,7 @@
         function saveSettings() {
             const difficultInterval = parseInt(document.getElementById('configIntervalDifficult').value) || 1;
             const normalInterval = parseInt(document.getElementById('configIntervalNormal').value) || 3;
-            const easyInterval = parseInt(document.getElementById('configIntervalEasy').value) || 7;
+            const easyInterval = parseInt(document.getElementById('configIntervalEasy').value) || 5;
             
             // Validar que sean positivos y en orden lógico
             if (difficultInterval <= 0 || normalInterval <= 0 || easyInterval <= 0) {
